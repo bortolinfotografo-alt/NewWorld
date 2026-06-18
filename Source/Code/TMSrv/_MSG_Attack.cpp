@@ -103,20 +103,24 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 		if (!balanceAuditExpectedSkill)
 		{
 			//pMob[conn].CrackError = SystemTime + 10800;
-			/*
-			snprintf(temp, sizeof(temp), "Banido por usar skill de Kefra");
-			SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP, temp);*/
-			SendBanAccount(conn, Banned::Permanente);
+			{
+				char banlog[160];
+				snprintf(banlog, sizeof(banlog), "Hack: skill ilegal de Kefra (skill %d) - conta em analise", m->SkillIndex);
+				SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP, banlog);
+			}
+			SendBanAccount(conn, Banned::Analise);
 			return;
 		}
 	}
 
 	if (*(short*)&pMsg[48] == 7 && *(short*)&pMsg[73] == 0xBBB)  //HACK DIA 20/10   //one hit
 	{
-		/*
-		snprintf(temp, sizeof(temp), "Banido por usar hack one hit");
-		SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP, temp);*/
-		SendBanAccount(conn, Banned::Permanente);
+		{
+			char banlog[160];
+			snprintf(banlog, sizeof(banlog), "Hack: one hit detectado - conta em analise");
+			SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP, banlog);
+		}
+		SendBanAccount(conn, Banned::Analise);
 		return;
 	}
 
