@@ -1,0 +1,70 @@
+# ============================================================
+# .gitignore do NewWorld — ignora APENAS lixo de build / dados de runtime.
+# (Arquivos ja commitados NAO sao afetados; isto so evita commitar lixo novo.)
+# ============================================================
+
+# --- Dependencias / pacotes ---
+node_modules/
+
+# --- Artefatos de compilacao (C++) ---
+**/obj/
+*.tlog
+*.pdb
+*.idb
+*.ipdb
+*.iobj
+*.obj
+*.ilk
+*.exp
+*.res
+*.lastbuildstate
+*.recipe
+*.log
+
+# --- Pastas de saida de build do Source (TMSrv/ClientPatch/etc.) ---
+Source/Code/*/_production/
+Source/Code/*/_codexbuild*/
+Source/Code/*/_turnbuild*/
+Source/Code/*/_tmbuild*/
+Source/Code/*/_staffbuild*/
+Source/Code/*/_macrobuild*/
+Source/Code/*/_*build*/
+Source/Code/*/x64/
+Source/Code/*/Release/
+Source/Code/*/Debug/
+Source/Code/**/TMSrv/Release/
+
+# --- Build de Launcher / tools (.NET) ---
+Launcher/obj/
+Launcher/bin/
+tools/*/obj/
+tools/*/bin/
+
+# --- runtime/ (regeneravel: build, deploy, analise, dados de DB local, etc.) ---
+runtime/build/
+runtime/deploy/
+runtime/deploy-backups/
+runtime/analysis/
+runtime/archive/
+runtime/deps/
+runtime/mariadb-data-3307/
+runtime/balance-build/
+runtime/balance-sessions/
+runtime/balance-analysis/
+runtime/balance-telemetry-build/
+runtime/hotfix-backups/
+runtime/hotfixes/
+runtime/rebrand-backups/
+runtime/rollback*/
+
+# --- Pacotes de entrega para a VPS (ZIPs regeneraveis) ---
+runtime/ENTREGAR-VPS/
+
+# --- Backups gerados ---
+backups/
+
+# --- Logs e temporarios do servidor em runtime ---
+Server/TMSrv/run/*.log
+Server/DBSrv/run/*.log
+Server/**/run/Logs/
+Server/**/run/log/
