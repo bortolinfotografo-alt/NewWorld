@@ -6810,6 +6810,19 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			memmove_s(pMob[conn].MOB.SkillBar, 4, pMob[conn].extra.SaveCelestial[ncl].SkillBar1, 4);
 			memmove_s(pUser[conn].CharShortSkill, 16, pMob[conn].extra.SaveCelestial[ncl].SkillBar2, 16);
 
+			// Slot celestial novo (nunca usado) vem zerado -> a barra viria com 'skill 0'
+			// em todos os slots (bug da barra cheia). Detecta slot vazio e limpa (0xFF = vazio).
+			{
+				bool freshCelSlot = true;
+				for (int z = 0; z < 4 && freshCelSlot; z++) if (pMob[conn].extra.SaveCelestial[ncl].SkillBar1[z] != 0) freshCelSlot = false;
+				for (int z = 0; z < 16 && freshCelSlot; z++) if (pMob[conn].extra.SaveCelestial[ncl].SkillBar2[z] != 0) freshCelSlot = false;
+				if (freshCelSlot)
+				{
+					memset(pMob[conn].MOB.SkillBar, 0xFF, sizeof(pMob[conn].MOB.SkillBar));
+					memset(pUser[conn].CharShortSkill, 0xFF, sizeof(pUser[conn].CharShortSkill));
+				}
+			}
+
 			for (int i = 0; i < MAX_AFFECT; i++)
 			{
 				if (pMob[conn].Affect[i].Type == 4 || pMob[conn].Affect[i].Type == 8 || pMob[conn].Affect[i].Type == 29 || pMob[conn].Affect[i].Type == 30 || pMob[conn].Affect[i].Type == 34 || pMob[conn].Affect[i].Type == 35 || pMob[conn].Affect[i].Type == 39 || pMob[conn].Affect[i].Type == 51)
@@ -6828,8 +6841,8 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			sm_sss.ID = ESCENE_FIELD;
 			sm_sss.Type = _MSG_SetShortSkill;
 
-			memmove_s(sm_sss.Skill1, 4, pMob[conn].extra.SaveCelestial[ncl].SkillBar1, 4);
-			memmove_s(sm_sss.Skill2, 16, pMob[conn].extra.SaveCelestial[ncl].SkillBar2, 16);
+			memmove_s(sm_sss.Skill1, 4, pMob[conn].MOB.SkillBar, 4);
+			memmove_s(sm_sss.Skill2, 16, pUser[conn].CharShortSkill, 16);
 
 			int Size = sm_sss.Size;
 
@@ -6936,6 +6949,19 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 				memmove_s(pMob[conn].MOB.SkillBar, 4, pMob[conn].extra.SaveCelestial[ncl].SkillBar1, 4);
 				memmove_s(pUser[conn].CharShortSkill, 16, pMob[conn].extra.SaveCelestial[ncl].SkillBar2, 16);
 
+				// Slot celestial novo (nunca usado) vem zerado -> a barra viria com 'skill 0'
+				// em todos os slots (bug da barra cheia). Detecta slot vazio e limpa (0xFF = vazio).
+				{
+					bool freshCelSlot = true;
+					for (int z = 0; z < 4 && freshCelSlot; z++) if (pMob[conn].extra.SaveCelestial[ncl].SkillBar1[z] != 0) freshCelSlot = false;
+					for (int z = 0; z < 16 && freshCelSlot; z++) if (pMob[conn].extra.SaveCelestial[ncl].SkillBar2[z] != 0) freshCelSlot = false;
+					if (freshCelSlot)
+					{
+						memset(pMob[conn].MOB.SkillBar, 0xFF, sizeof(pMob[conn].MOB.SkillBar));
+						memset(pUser[conn].CharShortSkill, 0xFF, sizeof(pUser[conn].CharShortSkill));
+					}
+				}
+
 				for (int i = 0; i < MAX_AFFECT; i++)
 				{
 					if (pMob[conn].Affect[i].Type == 4 || pMob[conn].Affect[i].Type == 8 || pMob[conn].Affect[i].Type == 29 || pMob[conn].Affect[i].Type == 30 || pMob[conn].Affect[i].Type == 34 || pMob[conn].Affect[i].Type == 35 || pMob[conn].Affect[i].Type == 39)
@@ -6954,8 +6980,8 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 				sm_sss.ID = ESCENE_FIELD;
 				sm_sss.Type = _MSG_SetShortSkill;
 
-				memmove_s(sm_sss.Skill1, 4, pMob[conn].extra.SaveCelestial[ncl].SkillBar1, 4);
-				memmove_s(sm_sss.Skill2, 16, pMob[conn].extra.SaveCelestial[ncl].SkillBar2, 16);
+				memmove_s(sm_sss.Skill1, 4, pMob[conn].MOB.SkillBar, 4);
+				memmove_s(sm_sss.Skill2, 16, pUser[conn].CharShortSkill, 16);
 
 				int Size = sm_sss.Size;
 
