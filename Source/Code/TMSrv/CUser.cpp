@@ -40,6 +40,9 @@ CUser::CUser()
 	LastClientTick	 = 0;
 	PotionTime		 = 0;
 	OnlyTrade		 = 0;
+	AutoTradeStoreMob = 0;
+	AutoTradeStoreX = 0;
+	AutoTradeStoreY = 0;
 
 	WaitDB = 0;
 }
@@ -85,6 +88,9 @@ int CUser::CloseUser()
 	 cSock.Sock		= 0;
 	 IsBillConnect  = 0;	 
 	 Mode = USER_EMPTY;
+	 AutoTradeStoreMob = 0;
+	 AutoTradeStoreX = 0;
+	 AutoTradeStoreY = 0;
 	 AccountName[0] = 0;
 	 return TRUE;
 }

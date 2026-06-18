@@ -222,7 +222,7 @@
 222	APOSTA
 223	1.000
 224	_NENHUM
-225	Copyright_2023 The New World
+225	Copyright_2023 Wyd Kingdom
 226	__Controle_de_Combate:_Físico
 227	__Controle_de_Combate:_Mágico
 228	Nv
@@ -406,8 +406,8 @@
 407	______Filtro
 408	___Donate_Store
 409	___Painel_Pix
-410	__Modo_Foto
-411	___Modo_Stream
+410	__Ranking
+411	___Comandos
 412	Cidades
 413	Informações_do_Server
 414	Consumíveis

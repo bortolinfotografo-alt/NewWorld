@@ -149,6 +149,9 @@ void ExecItemLevel();
 void ReqAlias(int Type);
 void AttTraje(int Type);
 void SendPix(int qnt, const char* chave);
+void AutoTradePreviewSet(bool enabled, int index);
+void AutoTradePreviewTick();
+bool AutoTradePreviewTryCloseFromClick();
 #pragma endregion
 
 #endif

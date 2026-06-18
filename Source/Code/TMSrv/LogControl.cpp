@@ -75,5 +75,6 @@ void LogControl::WriteLog(std::string Message, std::string MacAddress, std::stri
 			Account.c_str(), MacAddress.c_str(), IP.c_str(), Message.c_str());
 
 		*(m_pStream.get()) << std::string(tmp_msg);
+		m_pStream.get()->flush();
 	}
 }

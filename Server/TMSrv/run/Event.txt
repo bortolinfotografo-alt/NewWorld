@@ -11,7 +11,7 @@
 #TROCA 3
 2399 3      #Amg Equipe N
 2404 3      #Amg Equipe B
-2406 1       #Amg Fenrir
+0 0       #Removido Amg Fenrir
 482 1       #Bau IV
 #TROCA 4
 483 1      #Bau V

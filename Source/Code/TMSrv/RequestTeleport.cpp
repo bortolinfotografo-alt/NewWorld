@@ -63,6 +63,14 @@ void ReqTeleport(int conn, char* pMsg) {
 		return;
 	}
 
+	#if !NIPPLEHEIM_HABILITADO
+	if (X >= 3500 && X <= 3800 && Y >= 3000 && Y <= 3300)
+	{
+		SendClientMessage(conn, "Karden sera habilitado em breve.");
+		return;
+	}
+#endif
+
 	int fX = X + rand() % 3;
 	int fY = Y + rand() % 3;
 

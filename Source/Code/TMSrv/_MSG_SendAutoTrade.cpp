@@ -18,6 +18,8 @@
 */
 #include "ProcessClientMessage.h"
 
+extern DWORD gAutoTradeNativeUnlockTick[MAX_USER];
+
 void Exec_MSG_SendAutoTrade(int conn, char *pMsg)
 {
 	MSG_SendAutoTrade* m = (MSG_SendAutoTrade*)pMsg;
@@ -74,9 +76,9 @@ void Exec_MSG_SendAutoTrade(int conn, char *pMsg)
 	
 	*/
 
-	if (pUser[conn].TradeMode)
+	if (pUser[conn].TradeMode || IsAutoTradeActive(conn))
 	{
-		SendClientMessage(conn, g_pMessageStringTable[_NN_CantWhenAutoTrade]);
+		SendClientMessage(conn, "Voce ja possui lojinha aberta. Use /closeloja para encerrar.");
 		return;
 	}
 
@@ -140,19 +142,22 @@ void Exec_MSG_SendAutoTrade(int conn, char *pMsg)
 
 	strncpy(pUser[conn].AutoTrade.Title, m->Title, MAX_AUTOTRADETITLE);
 
-	pUser[conn].TradeMode = 1;
-	pMob[conn].CheckLojinha = 600;
+	pUser[conn].TradeMode = 0;
+	pMob[conn].CheckLojinha = 1800;
 
 	memcpy(&pUser[conn].AutoTrade, m, sizeof(MSG_SendAutoTrade));
 
 	m->Size = sizeof(MSG_SendAutoTrade);
 
-	MSG_CreateMobTrade sm_cmt;
-	memset(&sm_cmt, 0, sizeof(MSG_CreateMobTrade));
+	if (!CreateAutoTradeProxy(conn))
+	{
+		RemoveTrade(conn);
+		SendClientMessage(conn, "Nao foi possivel criar a loja aqui.");
+		return;
+	}
 
-	SendAutoTrade(conn, conn);
-	GetCreateMobTrade(conn, &sm_cmt);
-
-	sm_cmt.Score.Con = 0;
-	GridMulticast(targetx, targety, (MSG_STANDARD*)&sm_cmt, 0);
+	gAutoTradeNativeUnlockTick[conn] = GetTickCount();
+	SendAutoTrade(conn, pUser[conn].AutoTradeStoreMob);
+	SendClientSignalParm(conn, ESCENE_FIELD, _MSG_AutoTradePreview, pUser[conn].AutoTradeStoreMob);
+	SendClientSignal(conn, conn, 900);
 }

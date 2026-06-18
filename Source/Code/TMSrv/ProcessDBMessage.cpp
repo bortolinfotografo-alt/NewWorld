@@ -20,6 +20,243 @@
 #include "wMySQL.h"
 #include "Functions.h"
 
+extern char g_PendingCreateCharacterName[MAX_USER][NAME_LENGTH];
+extern int g_PendingCreateCharacterSlot[MAX_USER];
+extern int g_PendingCreateCharacterAccountId[MAX_USER];
+
+static void ClearPendingCreateCharacter(int conn)
+{
+	g_PendingCreateCharacterName[conn][0] = 0;
+	g_PendingCreateCharacterSlot[conn] = -1;
+	g_PendingCreateCharacterAccountId[conn] = 0;
+}
+
+static int GetCreateCharacterAccountId(int conn)
+{
+	if (g_PendingCreateCharacterAccountId[conn] > 0)
+		return g_PendingCreateCharacterAccountId[conn];
+
+	if (pUser[conn].AccountName[0] == 0)
+		return 0;
+
+	auto& pc = cSQL::instance();
+
+	sprintf(xQuery, "SELECT `id` FROM `accounts` WHERE UPPER(`username`) = UPPER('%s') LIMIT 1", pUser[conn].AccountName);
+
+	MYSQL* wSQL = pc.wStart();
+	MYSQL_RES* result = pc.wRes(wSQL, xQuery);
+
+	if (result == NULL)
+		return 0;
+
+	MYSQL_ROW row;
+	int accountId = 0;
+
+	if ((row = mysql_fetch_row(result)) != NULL && row[0] != NULL)
+		accountId = atoi(row[0]);
+
+	mysql_free_result(result);
+
+	return accountId;
+}
+
+static int GetCreateCharacterFileState(const char* mobName)
+{
+	if (mobName == NULL || mobName[0] == 0)
+		return -1;
+
+	char check[NAME_LENGTH];
+	strncpy(check, mobName, NAME_LENGTH);
+	check[NAME_LENGTH - 1] = 0;
+	check[NAME_LENGTH - 2] = 0;
+	_strupr(check);
+
+	char First[128];
+	BASE_GetFirstKey(check, First);
+
+	const char* roots[] = { "../../DBSrv/run/char", "../../../Server/DBSrv/run/char", "./char" };
+
+	for (int i = 0; i < 3; i++)
+	{
+		char root[MAX_PATH];
+		sprintf(root, "%s", roots[i]);
+
+		if (_access(root, 0) != 0)
+			continue;
+
+		char charDir[MAX_PATH];
+		sprintf(charDir, "%s/%s", root, First);
+
+		if (_access(charDir, 0) != 0)
+			return 0;
+
+		char charPath[MAX_PATH];
+		sprintf(charPath, "%s/%s", charDir, check);
+
+		return _access(charPath, 0) == 0 ? 1 : 0;
+	}
+
+	return -1;
+}
+
+static int GetConfirmedCreateSlot(int conn, MSG_CNFNewCharacter* m)
+{
+	int pendingSlot = g_PendingCreateCharacterSlot[conn];
+
+	if (pendingSlot >= 0 && pendingSlot < MOB_PER_ACCOUNT && m->sel.Name[pendingSlot][0] != 0 &&
+		strcmp(m->sel.Name[pendingSlot], pUser[conn].SelChar.Name[pendingSlot]) != 0)
+		return pendingSlot;
+
+	for (int i = 0; i < MOB_PER_ACCOUNT; i++)
+	{
+		if (m->sel.Name[i][0] != 0 && strcmp(m->sel.Name[i], pUser[conn].SelChar.Name[i]) != 0)
+			return i;
+	}
+
+	return -1;
+}
+
+static void SyncConfirmedCreateCharacterMySQL(int conn, MSG_CNFNewCharacter* m)
+{
+	int slot = GetConfirmedCreateSlot(conn, m);
+	if (slot < 0)
+	{
+		SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP, "warn,createchar mysql sync skipped no slot");
+		return;
+	}
+
+	char mobName[NAME_LENGTH];
+	strncpy(mobName, m->sel.Name[slot], NAME_LENGTH);
+	mobName[NAME_LENGTH - 1] = 0;
+	mobName[NAME_LENGTH - 2] = 0;
+
+	int accountId = GetCreateCharacterAccountId(conn);
+	if (accountId <= 0)
+	{
+		auto& pc = cSQL::instance();
+
+		sprintf(xQuery,
+			"DELETE FROM `characteres` WHERE UPPER(`nick`) = UPPER('%s') OR (`slot_char` = '%d' AND `account_id` IN (SELECT `id` FROM `accounts` WHERE UPPER(`username`) = UPPER('%s')))",
+			mobName, slot, pUser[conn].AccountName);
+		pc.wQuery(xQuery);
+
+		sprintf(xQuery,
+			"INSERT INTO `characteres` (`slug`, `account_id`, `nick`, `slot_char`) SELECT '%d', `id`, '%s', '%d' FROM `accounts` WHERE UPPER(`username`) = UPPER('%s') LIMIT 1",
+			1, mobName, slot, pUser[conn].AccountName);
+
+		if (!pc.wQuery(xQuery))
+		{
+			SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP,
+				strFmt("err,createchar mysql sync account not found name:%s", mobName));
+			return;
+		}
+
+		SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP,
+			strFmt("warn,createchar mysql synced by account name:%s slot:%d", mobName, slot));
+		return;
+	}
+
+	auto& pc = cSQL::instance();
+
+	sprintf(xQuery, "DELETE FROM `characteres` WHERE `account_id` = '%d' AND (`nick` = '%s' OR `slot_char` = '%d')", accountId, mobName, slot);
+	pc.wQuery(xQuery);
+
+	sprintf(xQuery, "INSERT INTO `characteres` (`slug`, `account_id`, `nick`, `slot_char`) VALUES ('%d', '%d', '%s', '%d')",
+		1, accountId, mobName, slot);
+
+	if (!pc.wQuery(xQuery))
+	{
+		SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP,
+			strFmt("err,createchar mysql insert fail name:%s slot:%d", mobName, slot));
+		return;
+	}
+
+	SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP,
+		strFmt("etc,createchar mysql synced name:%s slot:%d", mobName, slot));
+}
+
+static bool CleanupFailedCreateCharacterMySQL(int conn)
+{
+	if (g_PendingCreateCharacterName[conn][0] == 0)
+		return false;
+
+	int slot = g_PendingCreateCharacterSlot[conn];
+	int accountId = GetCreateCharacterAccountId(conn);
+	int fileState = GetCreateCharacterFileState(g_PendingCreateCharacterName[conn]);
+
+	if (fileState == 0 && accountId > 0 && slot >= 0)
+	{
+		auto& pc = cSQL::instance();
+
+		sprintf(xQuery, "DELETE FROM `characteres` WHERE `account_id` = '%d' AND `nick` = '%s' AND `slot_char` = '%d'",
+			accountId, g_PendingCreateCharacterName[conn], slot);
+
+		bool ok = pc.wQuery(xQuery);
+
+		SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP,
+			strFmt(ok ? "warn,createchar cleaned mysql ghost name:%s slot:%d" : "err,createchar mysql ghost cleanup fail name:%s slot:%d",
+				g_PendingCreateCharacterName[conn], slot));
+
+		return ok;
+	}
+
+	SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP,
+		strFmt(fileState == 1 ? "err,createchar db fail file exists name:%s slot:%d" : "err,createchar db fail file unknown name:%s slot:%d",
+			g_PendingCreateCharacterName[conn], slot));
+
+	return false;
+}
+
+static void SyncConfirmedDeleteCharacterMySQL(int conn, MSG_CNFDeleteCharacter* m)
+{
+	int slot = -1;
+	char mobName[NAME_LENGTH];
+	mobName[0] = 0;
+
+	for (int i = 0; i < MOB_PER_ACCOUNT; i++)
+	{
+		if (pUser[conn].SelChar.Name[i][0] == 0)
+			continue;
+
+		if (strcmp(pUser[conn].SelChar.Name[i], m->sel.Name[i]) != 0)
+		{
+			slot = i;
+			strncpy(mobName, pUser[conn].SelChar.Name[i], NAME_LENGTH);
+			mobName[NAME_LENGTH - 1] = 0;
+			mobName[NAME_LENGTH - 2] = 0;
+			break;
+		}
+	}
+
+	if (slot < 0 || mobName[0] == 0)
+	{
+		SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP,
+			"warn,deletechar mysql sync skipped no slot");
+		return;
+	}
+
+	int accountId = GetCreateCharacterAccountId(conn);
+	auto& pc = cSQL::instance();
+
+	if (accountId > 0)
+	{
+		sprintf(xQuery,
+			"DELETE FROM `characteres` WHERE `account_id` = '%d' AND (UPPER(`nick`) = UPPER('%s') OR `slot_char` = '%d')",
+			accountId, mobName, slot);
+	}
+	else
+	{
+		sprintf(xQuery,
+			"DELETE FROM `characteres` WHERE (UPPER(`nick`) = UPPER('%s') OR `slot_char` = '%d') AND `account_id` IN (SELECT `id` FROM `accounts` WHERE UPPER(`username`) = UPPER('%s'))",
+			mobName, slot, pUser[conn].AccountName);
+	}
+
+	bool ok = pc.wQuery(xQuery);
+
+	SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP,
+		strFmt(ok ? "etc,deletechar mysql synced name:%s slot:%d" : "err,deletechar mysql sync fail name:%s slot:%d",
+			mobName, slot));
+}
 
 void ProcessDBMessage(char* Msg)
 {
@@ -496,6 +733,11 @@ void ProcessDBMessage(char* Msg)
 		{
 			MSG_CNFNewCharacter* m = (MSG_CNFNewCharacter*)Msg;
 
+			SyncConfirmedCreateCharacterMySQL(conn, m);
+			pUser[conn].SelChar = m->sel;
+			pUser[conn].NumCreated++;
+			ClearPendingCreateCharacter(conn);
+
 			m->Type = _MSG_CNFNewCharacter;
 			m->ID = ESCENE_FIELD + 1;
 
@@ -512,11 +754,14 @@ void ProcessDBMessage(char* Msg)
 		{
 			MSG_CNFDeleteCharacter* m = (MSG_CNFDeleteCharacter*)Msg;
 
+			SyncConfirmedDeleteCharacterMySQL(conn, m);
+
 			m->Type = _MSG_CNFDeleteCharacter;
 			m->ID = ESCENE_FIELD + 1;
 
 			pUser[conn].cSock.SendOneMessage((char*)m, sizeof(MSG_CNFDeleteCharacter));
 
+			pUser[conn].SelChar = m->sel;
 			pUser[conn].Mode = USER_CHARWAIT;
 
 		} break;
@@ -525,8 +770,34 @@ void ProcessDBMessage(char* Msg)
 		case _MSG_DBDeleteCharacterFail:
 		{
 			MSG_STANDARD* m = (MSG_STANDARD*)Msg;
+			int reason = 0;
+
+			if (m->Size >= sizeof(MSG_STANDARDPARM))
+				reason = ((MSG_STANDARDPARM*)Msg)->Parm;
 
 			m->ID = ESCENE_FIELD + 1;
+
+			switch (reason)
+			{
+			case 1:
+				SendClientMessage(conn, "Falha ao apagar personagem: slot invalido.");
+				break;
+			case 2:
+				SendClientMessage(conn, "Falha ao apagar personagem: conta nao encontrada no banco.");
+				break;
+			case 3:
+				SendClientMessage(conn, "Falha ao apagar personagem: senha incorreta.");
+				break;
+			case 4:
+				SendClientMessage(conn, "Falha ao apagar personagem: personagem nao encontrado no slot.");
+				break;
+			case 5:
+				SendClientMessage(conn, "Falha ao apagar personagem: nome reservado nao pode ser apagado.");
+				break;
+			default:
+				SendClientMessage(conn, "Falha ao apagar personagem. Confira a senha e tente novamente.");
+				break;
+			}
 
 			SendClientSignal(conn, 0, _MSG_DeleteCharacterFail);
 
@@ -541,7 +812,14 @@ void ProcessDBMessage(char* Msg)
 
 			m->ID = ESCENE_FIELD + 1;
 
+			bool cleanedGhost = CleanupFailedCreateCharacterMySQL(conn);
+			if (cleanedGhost)
+				SendClientMessage(conn, "Pendencia antiga removida. Tente criar novamente.");
+			else
+				SendClientMessage(conn, "Falha ao criar personagem. Tente outro nome ou avise o suporte.");
+
 			SendClientSignal(conn, 0, _MSG_NewCharacterFail);
+			ClearPendingCreateCharacter(conn);
 
 			pUser[conn].Mode = USER_CHARWAIT;
 			pUser[conn].WaitDB = false;
@@ -813,6 +1091,9 @@ void ProcessDBMessage(char* Msg)
 				pUser[conn].AutoTrade.CarryPos[k] = -1;
 
 			pUser[conn].TradeMode = 0;
+			pUser[conn].AutoTradeStoreMob = 0;
+			pUser[conn].AutoTradeStoreX = 0;
+			pUser[conn].AutoTradeStoreY = 0;
 			pUser[conn].PKMode = 0;
 
 			int tx = sm.PosX;
@@ -850,7 +1131,7 @@ void ProcessDBMessage(char* Msg)
 
 			if (Limitadordeconexoes(pUser[conn].MacAddress) >= 10)
 			{
-				CloseUser(conn);//força a saida da conn
+				CloseUser(conn);//forï¿½a a saida da conn
 				break;
 			}
 
@@ -999,8 +1280,9 @@ void ProcessDBMessage(char* Msg)
 			SendPKInfo(conn, conn);
 			SendGridMob(conn);
 
-			if (pMob[n].MOB.CurrentScore.Level >= 999)
-				pUser[n].Admin = 1;
+			// Auto-admin de level 999 SO vale para contas na whitelist (admin-accounts.txt).
+			if (pMob[conn].MOB.CurrentScore.Level >= 999 && IsAdminAccount(pUser[conn].AccountName))
+				pUser[conn].Admin = 1;
 
 			MountProcess(conn, 0);
 			SendWarInfo(conn, g_pGuildZone[4].Clan);
@@ -1072,7 +1354,7 @@ void ProcessDBMessage(char* Msg)
 			}
 
 			if (KefraLive == 0) {
-				SendMsgExp(conn, "Kefra está Vivo!", Orange, FALSE);
+				SendMsgExp(conn, "Kefra estï¿½ Vivo!", Orange, FALSE);
 			}*/
 
 			/*if (RvRBonus == pMob[conn].MOB.Clan && RvRBonus)
@@ -1100,7 +1382,7 @@ void ProcessDBMessage(char* Msg)
 
 			//bool Reboot = false;
 			//for (int i = 0; i < 16; i++) {
-			//	if (pMob[conn].MOB.Equip[i].sIndex == 632 || pMob[conn].MOB.Equip[i].sIndex == 671 || pMob[conn].MOB.Equip[i].sIndex == 670) // ABS - ESPECTRAL - CONCENTRAÇÃO
+			//	if (pMob[conn].MOB.Equip[i].sIndex == 632 || pMob[conn].MOB.Equip[i].sIndex == 671 || pMob[conn].MOB.Equip[i].sIndex == 670) // ABS - ESPECTRAL - CONCENTRAï¿½ï¿½O
 			//	{
 
 			//		memset(&pMob[conn].MOB.Equip[i], 0x0, sizeof(STRUCT_ITEM));
@@ -1111,7 +1393,7 @@ void ProcessDBMessage(char* Msg)
 			//}
 
 			//for (int i = 0; i < 64; i++) {
-			//	if (pMob[conn].MOB.Carry[i].sIndex == 632 || pMob[conn].MOB.Carry[i].sIndex == 671 || pMob[conn].MOB.Carry[i].sIndex == 670) // ABS - ESPECTRAL - CONCENTRAÇÃO
+			//	if (pMob[conn].MOB.Carry[i].sIndex == 632 || pMob[conn].MOB.Carry[i].sIndex == 671 || pMob[conn].MOB.Carry[i].sIndex == 670) // ABS - ESPECTRAL - CONCENTRAï¿½ï¿½O
 			//	{
 
 			//		memset(&pMob[conn].MOB.Carry[i], 0x0, sizeof(STRUCT_ITEM));
@@ -1121,7 +1403,7 @@ void ProcessDBMessage(char* Msg)
 			//	}
 			//}
 			//for (int i = 0; i < 128; i++) {
-			//	if (pUser[conn].Cargo[i].sIndex == 632 || pUser[conn].Cargo[i].sIndex == 671 || pUser[conn].Cargo[i].sIndex == 670) // ABS - ESPECTRAL - CONCENTRAÇÃO
+			//	if (pUser[conn].Cargo[i].sIndex == 632 || pUser[conn].Cargo[i].sIndex == 671 || pUser[conn].Cargo[i].sIndex == 670) // ABS - ESPECTRAL - CONCENTRAï¿½ï¿½O
 			//	{
 
 			//		memset(&pUser[conn].Cargo[i], 0x0, sizeof(STRUCT_ITEM));

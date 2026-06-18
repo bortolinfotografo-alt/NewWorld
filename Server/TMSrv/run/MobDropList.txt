@@ -9,8 +9,6 @@ Mob: Acessorios5
 Mob: Acessorios6
 
 Mob: Adamant_Tauron
-Âmago_de_Fenrir_das_Sombras, Âmago_de_Fenrir_das_Sombras, Âmago_de_Fenrir_das_Sombras, Âmago_de_Fenrir_das_Sombras, Âmago_de_Fenrir_das_Sombras, Âmago_de_Fenrir_das_Sombras, Âmago_de_Fenrir_das_Sombras, Âmago_de_Fenrir_das_Sombras, 
-Ovo_de_Fenrir_das_Sombras, 
 
 Mob: Aeon_Tauron
 Cajado_Caótico, Arco_Guardião, Dianus, Fúria_Divina, Arco_Divino, Garra_Draconiana, Fúria_Divina, Arco_Divino, 
@@ -107,7 +105,7 @@ Luvas_da_Natureza(Le), Botas_da_Natureza(Le), Resto_de_Oriharucon, Arco_Élfico, 
 Poeira_de_Lactolerium, 
 
 Mob: Aranha_Venenosa
-, , Resto_de_Oriharucon, Pedra_da_Luz, Pedra_da_Luz, Pedra_da_Luz, Poeira_de_Oriharucon, Resto_de_Lactolerium, 
+,  Resto_de_Oriharucon, Pedra_da_Luz, Pedra_da_Luz, Pedra_da_Luz, Poeira_de_Oriharucon, Resto_de_Lactolerium, 
 Pedaço_do_Círc_Div_Comp, Poeira_de_Lactolerium, 
 
 Mob: ArcherTaron 
@@ -142,7 +140,7 @@ Cura_do_Batedor, Lança_Relâmpago, Elmo_Anão(M), Resto_de_Lactolerium, Âmago_de_C
 Mob: Argos____
 
 Mob: Argus
-, , , , 
+,   
 
 Mob: Armas_Selado
 
@@ -220,7 +218,7 @@ Pedra_da_Luz, Pedra_de_Adamantita,
 Mob: Balmers
 
 Mob: Balrog
-Âmago_de_Unicórnio, Força_Espectral, Poeira_de_Lactolerium, 
+Força_Espectral, Poeira_de_Lactolerium, 
 
 Mob: Barao_Azul
 
@@ -368,7 +366,7 @@ Mob: Cav._Kaizen
 Coração_do_Kaizen, Resto_de_Lactolerium, Moeda_de_Prata(1Mi), Moeda_de_Prata(5Mi), Poeira_de_Oriharucon, Poeira_de_Lactolerium, 
 
 Mob: Cav._Lugefer
-, , 
+,  
 
 Mob: Cav._Mortal
 Chapéu_de_Mytril(N), Calça_Embutida(N), Calça_de_Mytril(N), Manoplas_Elementais(N), Peitoral_de_Teia(N), Martelo_Psíquico, Martelo_Dragão, Olho_do_Carbunkle, 
@@ -396,7 +394,7 @@ Coração_do_Kaizen, Coração_do_Kaizen, Coração_do_Kaizen, Armadura_Embutida(N), T
 Resto_de_Lactolerium, Calça_Elemental(N), Resto_de_Oriharucon, Coração_do_Kaizen, Coração_do_Kaizen, Armadura_Elemental(N), Peitoral_de_Teia(N), Calça_Embutida(N), 
 Calça_de_Mytril(N), Calça_Elemental(N), Moeda_de_Prata(1Mi), Coração_do_Kaizen, Armadura_Embutida(N), Túnica_de_Mytril(N), Armadura_Elemental(N), Peitoral_de_Teia(N), 
 Coração_do_Kaizen, Luvas_de_Mytril(N), Braçadeira_de_Teia(N), Coração_do_Kaizen, Coração_do_Kaizen, Coração_do_Kaizen, Coração_do_Kaizen, Coração_do_Kaizen, 
-Coração_do_Kaizen, , Moeda_de_Prata(1Mi), Resto_de_Oriharucon, Poeira_de_Oriharucon, Poeira_de_Lactolerium, 
+Coração_do_Kaizen,  Moeda_de_Prata(1Mi), Resto_de_Oriharucon, Poeira_de_Oriharucon, Poeira_de_Lactolerium, 
 
 Mob: Cavaleiro_Negro
 Luna, Martelo_Psíquico, Gram, Arco_Élfico, Calça_De_Combate(M), Mana_do_Batedor, Mana_do_Batedor, Mana_do_Batedor, 
@@ -443,9 +441,9 @@ Botas_de_Mytril(A), Braçadeira_de_Teia(A), Botas_de_Teia(A), Elmo_Elemental(A), 
 Poeira_de_Oriharucon, Poeira_de_Lactolerium, Canhão_Conjurado, 
 
 Mob: Chefe Amon Inf
-Âmago_de_Andaluz_B, Âmago_de_Andaluz_N, , Âmago_de_Andaluz_B, Âmago_de_Andaluz_N, Pedra_de_Adamantita, Pedra_da_Luz, Resto_de_Lactolerium, 
-Poeira_de_Lactolerium, Pergaminho_Selado, Âmago_de_Unicórnio, Poeira_de_Oriharucon, Pedra_de_Adamantita, Resto_de_Lactolerium, Âmago_de_Unicórnio, Âmago_de_Pégasus, 
-Âmago_de_Pégasus, Poeira_de_Oriharucon, 
+, Pedra_de_Adamantita, Pedra_da_Luz, Resto_de_Lactolerium, 
+Poeira_de_Lactolerium, Pergaminho_Selado, Poeira_de_Oriharucon, Pedra_de_Adamantita, Resto_de_Lactolerium, 
+Poeira_de_Oriharucon, 
 
 Mob: Chefe_De_Treino
 
@@ -558,9 +556,9 @@ Mob: Combatente
 Mob: Combatente_
 
 Mob: Comerciante
-Vara_de_Pesca, Salmonete, , , Rede_de_Pesca, Goraz, , , 
-Isca_De_Peixe, Corvina, , , , Tainha, , , 
-Dourado, , Besugo, 
+Vara_de_Pesca, Salmonete,  Rede_de_Pesca, Goraz,  
+Isca_De_Peixe, Corvina,   Tainha,  
+Dourado,  Besugo, 
 
 Mob: Compositor
 
@@ -580,7 +578,7 @@ Mob: Creta
 Escritura_do_Pesadelo, [S]Caixa_Poção_de_Cura, [S]Caixa_Poção_de_Mana, Selo_do_Guerreiro, Remédio_da_Coragem, 
 
 Mob: Cria_de_Aranha
-, , 
+,  
 
 Mob: Curandeira
 Esfera_da_Sorte, Gullfaxi(30dias), 
@@ -594,7 +592,7 @@ Mob: DeathKnight_K
 Mob: Dedekinto
 
 Mob: Demonio_do_Vale
-, , 
+,  
 
 Mob: Demon_Gorgon
 Garra_Draconiana, Resto_de_Oriharucon, Poeira_de_Lactolerium, 
@@ -610,11 +608,10 @@ Mob: Doffus
 
 Mob: Donation_Store
 Jóia_da_Sagacidade, Jóia_da_Resistência, Jóia_da_Revelação, Jóia_da_Absorção, Jóia_da_Proteção, Jóia_da_Recuperação, Jóia_da_Precisão, Jóia_da_Magia, 
-Jóia_da_Armazenagem, Jóia_do_Poder, , Pergaminho_do_Perdão, 
+Jóia_da_Armazenagem, Jóia_do_Poder,  Pergaminho_do_Perdão, 
 
 Mob: Donation_Store1
-Retorno_da_Habilidade, Pergaminho_Retorno, Pergaminho_do_Teleporte, , , Rede_de_Pesca, Vara_de_Pesca, Isca_De_Peixe, 
-, , , 
+Retorno_da_Habilidade, Pergaminho_Retorno, Pergaminho_do_Teleporte,  Rede_de_Pesca, Vara_de_Pesca, Isca_De_Peixe,   
 
 Mob: Donation_Store2
 Catalisador_de_Kapel, Catalisador_de_Acuban, Catalisador_de_Mencar, Catalisador_de_Birago, Catalisador_de_Yus, Catalisador_de_Makav, Restaurador_de_Kapel, Restaurador_de_Acuban, 
@@ -632,7 +629,7 @@ Poção_Divina(30dias), Pedra_da_Troca_Maior, Pedra_da_Troca_Menor,
 
 Mob: Donation_Store5
 Pergaminho_da_Água(A)LV1, Wooden_horse, Traje_, Traje_, Traje_, Poeira_de_Lactolerium, Traje_Mont:_Sombra_da_Morte(Prata), Traje_, 
-Traje_, Traje_, Poeira_de_Oriharucon, Traje_Mont:_Sombra_da_Morte(Ouro), Traje_, Traje_, Traje_, , 
+Traje_, Traje_, Poeira_de_Oriharucon, Traje_Mont:_Sombra_da_Morte(Ouro), Traje_, Traje_, Traje_,  
 Traje_Mont:_Aranha_Guerreira, Traje_, Traje_, Traje_, Baú_de_Experiência, Traje_Mont:_Cavalo_Real(Vermelho), Traje_, Traje_, 
 Traje_, Traje_Mont:_Cavalo_Real(Azul), 
 
@@ -728,7 +725,7 @@ Caixa_da_Sabedoria, Caixa_da_Sabedoria, Caixa_da_Sabedoria, Caixa_da_Sabedoria, 
 Armadura_de_Aço(M), Calça_de_Aço(M), Manoplas_de_Aço(M), Botas_de_Aço(M), Resto_de_Oriharucon, Resto_de_Lactolerium, Resto_de_Lactolerium, Chapéu_Sombrio(M), 
 Robe_Sombrio(M), Calça_Sombria(M), Luvas_Sombrias(M), Botas_Sombrias(M), Pedaço_do_Círc_Div_Comp, Elmo_de_Águia(M), Armadura_de_Águia(M), Calça_de_Águia(M), 
 Luvas_de_Águia(M), Botas_de_Águia(M), Caixa_da_Sabedoria, Caixa_da_Sabedoria, Chapéu_de_Metal(M), Peitoral_de_Metal(M), Calça_de_Metal(M), Braçadeira_de_Metal(M), 
-Botas_de_Metal(M), Resto_de_Oriharucon, Resto_de_Lactolerium, , Poeira_de_Oriharucon, Poeira_de_Lactolerium, 
+Botas_de_Metal(M), Resto_de_Oriharucon, Resto_de_Lactolerium,  Poeira_de_Oriharucon, Poeira_de_Lactolerium, 
 
 Mob: Esqueleto@
 
@@ -837,7 +834,7 @@ Fúria_Divina, Armadura_Elemental(Le), Armadura_Embutida(Le), Luvas_de_Mytril(Le)
 Poeira_de_Oriharucon, Poeira_de_Lactolerium, 
 
 Mob: Galford
-, , , , , , , , 
+,    
 
 Mob: Galford_
 Martelo_de_Pedra, Katana, Cajado_Orc, Foice_do_Mago, Foice_de_Argos, Arco_de_Caveira, Lança_de_Taurus, Tsurugi, 
@@ -894,7 +891,7 @@ Presas_de_Behemoth, Presas_de_Behemoth, Calça_Dourada(M), Calça_Dourada(M), Calç
 Poeira_de_Oriharucon, 
 
 Mob: GO!_Honra
-Poeira_de_Lactolerium, Poeira_de_Oriharucon, Âmago_de_Cavalo_Equip_N, Âmago_de_Cavalo_Equip_B, Âmago_de_Fenrir, Classe_D, Classe_E, Frango_Assado, 
+Poeira_de_Lactolerium, Poeira_de_Oriharucon, Âmago_de_Cavalo_Equip_N, Âmago_de_Cavalo_Equip_B, Classe_D, Classe_E, Frango_Assado, 
 Moeda_De_Honra(50), Cythera_Prateada, Ervas_de_Cura, Jóia_da_Recuperação, 
 
 Mob: GodGovernment
@@ -1009,7 +1006,7 @@ Poeira_de_Lactolerium, Poeira_de_Oriharucon, Poeira_de_Oriharucon, Poeira_de_Lac
 Poeira_de_Lactolerium, Poeira_de_Oriharucon, Poeira_de_Oriharucon, Poeira_de_Lactolerium, Poeira_de_Lactolerium, Pedra_de_Adamantita, Pergaminho_Selado, 
 
 Mob: Guer_Amon_Inf
-Âmago_de_Pégasus, Âmago_de_Unicórnio, 
+
 
 Mob: Guer_Caveira
 Armadura_Leonina(A), Peitoral_de_Bandagem(A), Saia_Vampírica(A), Espada_em_Cruz, Chakram, Saia_Vampírica(A), Aegis, Botas_de_Teia(M), 
@@ -1024,7 +1021,7 @@ Mob: Hefesto
 Katana, Martelo_de_Pedra, Cajado_Orc, Foice_do_Mago, Arco_de_Caveira, 
 
 Mob: Heimdal
-, , , 
+,  
 
 Mob: Heimdall
 
@@ -1058,8 +1055,7 @@ Olho_de_Sangue, Olho_de_Sangue, Olho_de_Sangue, Olho_de_Sangue, Olho_de_Sangue, 
 Olho_de_Sangue, Olho_de_Sangue, Olho_de_Sangue, Armadura_Embutida(M), Túnica_de_Mytril(M), Armadura_Elemental(M), Peitoral_de_Teia(M), Calça_Embutida(M), 
 Calça_de_Mytril(M), Calça_Elemental(M), Resto_de_Lactolerium, Armadura_Embutida(M), Túnica_de_Mytril(M), Armadura_Elemental(M), Peitoral_de_Teia(M), Calça_Embutida(M), 
 Calça_Elemental(M), Resto_de_Lactolerium, Resto_de_Lactolerium, Resto_de_Oriharucon, Resto_de_Oriharucon, Olho_de_Sangue, Olho_de_Sangue, Calça_de_Mytril(M), 
-Calça_de_Teia(M), Olho_de_Sangue, Olho_de_Sangue, Olho_de_Sangue, Olho_de_Sangue, Olho_de_Sangue, Olho_de_Sangue, Olho_de_Sangue, 
-, Resto_de_Oriharucon, Moeda_de_Prata(1Mi), Poeira_de_Oriharucon, Poeira_de_Oriharucon, Poeira_de_Lactolerium, 
+Calça_de_Teia(M), Olho_de_Sangue, Olho_de_Sangue, Olho_de_Sangue, Olho_de_Sangue, Olho_de_Sangue, Olho_de_Sangue, Olho_de_Sangue,  Resto_de_Oriharucon, Moeda_de_Prata(1Mi), Poeira_de_Oriharucon, Poeira_de_Oriharucon, Poeira_de_Lactolerium, 
 
 Mob: Hier-Carbunkle
 Varinha_Falcon, Espada_em_Cruz, Luvas_de_Águia(M), Elmo_de_Águia(M), Colheita_do_Jardineiro, Colheita_do_Jardineiro, Colheita_do_Jardineiro, Colheita_do_Jardineiro, 
@@ -1071,7 +1067,7 @@ Elmo_de_Águia(M), Luvas_de_Águia(M), Espada_em_Cruz, Colheita_do_Jardineiro, Var
 Túnica_Vampírica(A), Colheita_do_Jardineiro, Colheita_do_Jardineiro, Colheita_do_Jardineiro, Colheita_do_Jardineiro, Calça_de_Metal(A), Peitoral_de_Metal(A), 
 
 Mob: Homem_Kalintz
-Âmago_de_Andaluz_N, Ovo_de_Andaluz_N, Ovo_de_Andaluz_N, Poeira_de_Lactolerium, 
+Poeira_de_Lactolerium, 
 
 Mob: Honor_Store
 Retorno_da_Habilidade, Frango_Assado, Bolsa_do_Andarílho, Removedor_de_tintura, 
@@ -1163,8 +1159,7 @@ Mob: Krill_Gigante@
 Mob: Ladrao_Fantasma
 
 Mob: Ladrao_Tauron
-Âmago_de_Fenrir, Âmago_de_Fenrir, Âmago_de_Fenrir, Âmago_de_Fenrir, Âmago_de_Fenrir, Âmago_de_Fenrir, Âmago_de_Fenrir, Âmago_de_Fenrir, 
-Ovo_de_Fenrir, 
+Classe_E, 
 
 Mob: Ladrao Tauron 
 
@@ -1279,7 +1274,7 @@ Mob: Lugefer_Maligno
 Poeira_de_Lactolerium, 
 
 Mob: Lugefer__
-Âmago_de_Unicórnio, Força_Espectral, 
+Força_Espectral, 
 
 Mob: M._de_Montaria
 
@@ -1401,7 +1396,7 @@ Mob: Morlock__
 Mob: Morlock___
 
 Mob: Mulher_Kalintz
-Âmago_de_Andaluz_B, Âmago_de_Andaluz_B, Ovo_de_Andaluz_B, Ovo_de_Andaluz_B, Poeira_de_Lactolerium, 
+Poeira_de_Lactolerium, 
 
 Mob: NainTroll
 Escudo_do_Cavaleiro, Amuleto_de_Prata, Amuleto_de_Prata, Amuleto_de_Prata, Amuleto_de_Prata, Anel_de_Hercules, Anel_de_Athena, Anel_de_Titã, 
@@ -1512,17 +1507,16 @@ Mob: Patrulha_
 Mob: Patrulha__
 
 Mob: PerBerserker_
-, , , , , Poeira_de_Lactolerium, Poeira_de_Lactolerium, Poeira_de_Lactolerium, 
-Pacote_Safiras(10), Pacote_Safiras(10), Âmago_de_Unicórnio, Âmago_de_Unicórnio, Poeira_de_Lactolerium, Âmago_de_Unicórnio, Pacote_Safiras(10), Moeda_de_Prata(5Mi), 
-, , Poeira_de_Oriharucon, , Poeira_de_Oriharucon, 
+,  Poeira_de_Lactolerium, Poeira_de_Lactolerium, Poeira_de_Lactolerium, 
+Pacote_Safiras(10), Pacote_Safiras(10), Poeira_de_Lactolerium, Pacote_Safiras(10), Moeda_de_Prata(5Mi),  Poeira_de_Oriharucon,  Poeira_de_Oriharucon, 
 
 Mob: PerValkyrie
 Elmo_Legionário, Armadura_Legionária, Calça_Legionária, Botas_Legionárias, Manoplas_Legionárias, Poeira_de_Oriharucon, Poeira_de_Oriharucon, Pedra_Espiritual, 
 
 Mob: PerValkyrie 
-, , , , , Poeira_de_Lactolerium, Poeira_de_Lactolerium, Poeira_de_Lactolerium, 
-Pacote_Safiras(10), Pacote_Safiras(10), Âmago_de_Pégasus, Âmago_de_Pégasus, Poeira_de_Lactolerium, Âmago_de_Pégasus, Pacote_Safiras(10), Moeda_de_Prata(5Mi), 
-Poeira_de_Oriharucon, , Poeira_de_Oriharucon, 
+,  Poeira_de_Lactolerium, Poeira_de_Lactolerium, Poeira_de_Lactolerium, 
+Pacote_Safiras(10), Pacote_Safiras(10), Poeira_de_Lactolerium, Pacote_Safiras(10), Moeda_de_Prata(5Mi), 
+Poeira_de_Oriharucon,  Poeira_de_Oriharucon, 
 
 Mob: Perzen
 Esfera_da_Sorte, Gullfaxi(30dias), 
@@ -1542,14 +1536,12 @@ Vela_do_Coveiro, Vela_do_Coveiro,
 Mob: Porco_
 
 Mob: PreKalintz_H_
-, , , , , Poeira_de_Lactolerium, Poeira_de_Lactolerium, Poeira_de_Lactolerium, 
-Pacote_Safiras(10), Pacote_Safiras(10), Âmago_de_Unisus, Âmago_de_Unisus, Poeira_de_Lactolerium, Âmago_de_Unisus, Pacote_Safiras(10), Moeda_de_Prata(5Mi), 
-, , Poeira_de_Oriharucon, , Poeira_de_Oriharucon, 
+,  Poeira_de_Lactolerium, Poeira_de_Lactolerium, Poeira_de_Lactolerium, 
+Pacote_Safiras(10), Pacote_Safiras(10), Poeira_de_Lactolerium, Pacote_Safiras(10), Moeda_de_Prata(5Mi),  Poeira_de_Oriharucon,  Poeira_de_Oriharucon, 
 
 Mob: PreKalintz_M
-, , , , , Poeira_de_Lactolerium, Poeira_de_Lactolerium, Poeira_de_Lactolerium, 
-Pacote_Safiras(10), Pacote_Safiras(10), Âmago_de_Unisus, Âmago_de_Unisus, Poeira_de_Lactolerium, Âmago_de_Unisus, Pacote_Safiras(10), Moeda_de_Prata(5Mi), 
-, , Poeira_de_Oriharucon, , 
+,  Poeira_de_Lactolerium, Poeira_de_Lactolerium, Poeira_de_Lactolerium, 
+Pacote_Safiras(10), Pacote_Safiras(10), Poeira_de_Lactolerium, Pacote_Safiras(10), Moeda_de_Prata(5Mi),  Poeira_de_Oriharucon,  
 
 Mob: Premium_Neil
 
@@ -1662,7 +1654,7 @@ Mob: Seguidor_Treant
 Chapéu_de_Mytril(A), Túnica_de_Mytril(A), Calça_de_Mytril(A), Elmo_Embutido(A), Armadura_Embutida(A), Calça_Embutida(A), Manoplas_Embutidas(A), Botas_Embutidas(A), 
 Botas_de_Teia(A), Elmo_Elemental(A), Armadura_Elemental(A), Calça_Elemental(A), Manoplas_Elementais(A), Botas_Elementais(A), Arco_Divino, Solaris, 
 Espada_Vorpal, Martelo_Assassino, Mjolnir, Cajado_de_Âmbar, Fúria_Divina, Gungnir, Luvas_de_Mytril(A), Luvas_de_Mytril(A), 
-Pedaço_do_Círc_Div_Comp, Pedaço_do_Círc_Div_Comp, Âmago_de_Andaluz_B, Âmago_de_Andaluz_N, Botas_de_Mytril(A), Chapéu_de_Teia(A), Peitoral_de_Teia(A), Calça_de_Teia(A), 
+Pedaço_do_Círc_Div_Comp, Pedaço_do_Círc_Div_Comp, Botas_de_Mytril(A), Chapéu_de_Teia(A), Peitoral_de_Teia(A), Calça_de_Teia(A), 
 Classe_D, Pedra_de_Adamantita, 
 
 Mob: Serpente
@@ -1680,7 +1672,7 @@ Lágrima_Angelical, Lágrima_Angelical, Lágrima_Angelical, Botas_Douradas(M), Bota
 Lágrima_Angelical, Lágrima_Angelical, Lágrima_Angelical, Lágrima_Angelical, Armadura_Dourada(M), Túnica_Conjuradora(M), Armadura_Aeon(M), Peitoral_da_Natureza(M), 
 Calça_Dourada(M), Calça_Conjuradora(M), Calça_Aeon(M), Calça_da_Natureza(M), Armadura_Dourada(M), Túnica_Conjuradora(M), Armadura_Aeon(M), Peitoral_da_Natureza(M), 
 Calça_Dourada(M), Calça_Conjuradora(M), Calça_Aeon(M), Calça_da_Natureza(M), Lágrima_Angelical, Lágrima_Angelical, Lágrima_Angelical, Lágrima_Angelical, 
-Lágrima_Angelical, , Lágrima_Angelical, Resto_de_Lactolerium, Resto_de_Oriharucon, Poeira_de_Oriharucon, Poeira_de_Lactolerium, 
+Lágrima_Angelical,  Lágrima_Angelical, Resto_de_Lactolerium, Resto_de_Oriharucon, Poeira_de_Oriharucon, Poeira_de_Lactolerium, 
 
 Mob: Servo_Elfo
 Elmo_Embutido(M), Chapéu_de_Mytril(M), Elmo_Elemental(M), Chapéu_de_Teia(M), Manoplas_Embutidas(M), Luvas_de_Mytril(M), Manoplas_Elementais(M), Braçadeira_de_Teia(M), 
@@ -1688,7 +1680,7 @@ Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elf
 Botas_Embutidas(M), Calça_Elemental(M), Calça_de_Teia(M), Calça_de_Teia(M), Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elfos, Armadura_Embutida(M), Túnica_de_Mytril(M), 
 Armadura_Elemental(M), Peitoral_de_Teia(M), Calça_Embutida(M), Calça_de_Mytril(M), Calça_Elemental(M), Resto_de_Lactolerium, Armadura_Embutida(M), Túnica_de_Mytril(M), 
 Armadura_Elemental(M), Peitoral_de_Teia(M), Calça_Embutida(M), Calça_de_Mytril(M), Resto_de_Lactolerium, Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elfos, Calça_de_Teia(M), 
-Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elfos, , 
+Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elfos, Pedra_Espiritual_dos_Elfos,  
 Pedra_Espiritual_dos_Elfos, Resto_de_Oriharucon, Moeda_de_Prata(1Mi), Resto_de_Lactolerium, Poeira_de_Lactolerium, Poeira_de_Oriharucon, 
 
 Mob: Servo_Elfo_
@@ -1754,7 +1746,7 @@ Pergaminho_Selado, Fúria_Divina, Pergaminho_Selado, Pergaminho_Selado, Pergaminh
 
 Mob: Simio_Bleg
 Diamante, Esmeralda, Coral, Garnet, Resto_de_Oriharucon, Resto_de_Lactolerium, Elmo_Embutido(A), Chapéu_de_Mytril(A), 
-Peitoral_de_Teia(A), Elmo_Elemental(A), Botas_Embutidas(A), Botas_de_Mytril(A), Botas_de_Teia(A), Botas_Elementais(A), Mjolnir, , 
+Peitoral_de_Teia(A), Elmo_Elemental(A), Botas_Embutidas(A), Botas_de_Mytril(A), Botas_de_Teia(A), Botas_Elementais(A), Mjolnir,  
 Poeira_de_Lactolerium, Pedra_de_Adamantita, Concentração, 
 
 Mob: Simio_Inf
@@ -1791,8 +1783,8 @@ Mob: Taron
 
 Mob: Taron_Assassino
 Asa_Draconiana, Arco_Guardião, Dianus, Foice_Platinada, Vingadora, Karikas, Força_Eterna, Cajado_Caótico, 
-Éden, Demolidor_Celestial, Escudo_do_Guardião, Gram, Luna, Âmago_de_Fenrir, Martelo_Psíquico, Gungnir, 
-Cajado_de_Âmbar, Olho_do_Carbunkle, Arco_Élfico, Presas_de_Behemoth, Lança_Relâmpago, Âmago_de_Fenrir, Poeira_de_Lactolerium, Ovo_de_Fenrir, 
+Éden, Demolidor_Celestial, Escudo_do_Guardião, Gram, Luna, Martelo_Psíquico, Gungnir, 
+Cajado_de_Âmbar, Olho_do_Carbunkle, Arco_Élfico, Presas_de_Behemoth, Lança_Relâmpago, Poeira_de_Lactolerium, 
 Ankh_da_Justiça, 
 
 Mob: Taron_de_Ferro@
@@ -1803,7 +1795,7 @@ Mob: Tauron
 Pedra_de_Adamantita, Poeira_de_Oriharucon, Poeira_de_Lactolerium, Poeira_de_Lactolerium, Moeda_de_Prata(1Mi), Poeira_de_Oriharucon, 
 
 Mob: Tauron_Agmo
-Pedra_do_Sábio, Pedra_de_Tectita, Pedra_de_Adamantita, 
+Pedra_do_Sábio, Pedra_de_Tectita, Pedra_de_Adamantita, Manoplas_Embutidas(Le), Luvas_de_Mytril(Le), Manoplas_Elementais(Le), Braçadeira_de_Teia(Le),
 
 Mob: Tauron_Desert
 
@@ -1834,7 +1826,7 @@ Pedra_de_Adamantita, Pergaminho_Selado,
 
 Mob: Test
 Unicórnio, Pegasus, Unisus, Grifo, Hipogrifo, Grifo_Sangrento, Svadilfari, Sleipnir, 
-Pantera_Negra, Âmago_de_Unicórnio, Âmago_de_Pégasus, Âmago_de_Unisus, Âmago_de_Grifo, Âmago_de_Hipogrifo, Âmago_de_Grifo_Sang, Âmago_de_Svadilfari, 
+Pantera_Negra, Âmago_de_Grifo, Âmago_de_Hipogrifo, Âmago_de_Grifo_Sang, Âmago_de_Svadilfari, 
 Âmago_de_Sleipnir, Âmago_de_Pantera_Negra, Garra_Draconiana, Pedra_Espiritual, Pedra_Espiritual, Pedaço_do_Círc_Div_Comp, Poção_Poderosa, 
 
 Mob: Test_Kefra
@@ -1899,8 +1891,8 @@ Mob: Treinador3
 Mob: Troca_De_Fadas
 
 Mob: Troll
-, , Garra_da_Escuridão, Espada_Curta, Elmo_de_Malha(M), Botas_de_Malha(M), Calça_Sombria(M), Bumerang_Cortante, 
-Vela_do_Coveiro, Vela_do_Coveiro, Bastão_Serpente, , Manopla_Cortante, Lança_Curva, Machado_de_Arremesso, Elmo_de_Couro(A), 
+,  Garra_da_Escuridão, Espada_Curta, Elmo_de_Malha(M), Botas_de_Malha(M), Calça_Sombria(M), Bumerang_Cortante, 
+Vela_do_Coveiro, Vela_do_Coveiro, Bastão_Serpente,  Manopla_Cortante, Lança_Curva, Machado_de_Arremesso, Elmo_de_Couro(A), 
 Calça_de_Couro(A), Armadura_de_Couro(A), Botas_de_Pano(A), Pedaço_do_Círculo_Divino, 
 
 Mob: Troll@
@@ -2009,7 +2001,7 @@ Mob: Uxmal
 
 Mob: Valquiria
 Pergaminho_Selado, Pergaminho_Selado, Ressurreição, Concentração, Muro_de_Espinhos, Ressurreição, Concentração, Muro_de_Espinhos, 
-Pergaminho_Selado, Concentração, Âmago_de_Unicórnio, Pedra_de_Adamantita, 
+Pergaminho_Selado, Concentração, Pedra_de_Adamantita, 
 
 Mob: Valquiria_Rosen
 Elmo_Legionário, Armadura_Legionária, Calça_Legionária, Manoplas_Legionárias, Botas_Legionárias, Elmo_Legionário, Armadura_Legionária, Calça_Legionária, 
@@ -2081,10 +2073,10 @@ Mob: Zakum_Imp
 Pergaminho_Retorno, 
 
 Mob: Zakum Inf
-Âmago_de_Unicórnio, Pedra_da_Luz, Âmago_de_Pégasus, Âmago_de_Unisus, Resto_de_Lactolerium, Poeira_de_Oriharucon, Poeira_de_Lactolerium, 
+Pedra_da_Luz, Resto_de_Lactolerium, Poeira_de_Oriharucon, Poeira_de_Lactolerium, 
 
 Mob: Zakum Inf 
-Âmago_de_Unicórnio, Pedra_da_Luz, Âmago_de_Pégasus, Âmago_de_Unisus, Resto_de_Lactolerium, Poeira_de_Oriharucon, Poeira_de_Lactolerium, 
+Pedra_da_Luz, Resto_de_Lactolerium, Poeira_de_Oriharucon, Poeira_de_Lactolerium, 
 
 Mob: Zakum_Lord
 Pergaminho_Retorno, 

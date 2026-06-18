@@ -1,11 +1,51 @@
-------------------------------------------
->>> Logging system turn on.
->> mark 
-11/04 18:36:25 - VertexShader HW Accel Enabled
-11/04 18:36:25 - Error in Init Render Target Texture
-11/04 18:36:26 - ReadingError : mesh\\etc054_off.msa
-11/04 18:36:26 - ReadingError : mesh\\etc055_off.msa
-11/04 18:36:26 - ReadingError : mesh\\etc057_off.msa
-11/04 18:36:26 - ReadingError : mesh\\etc051_off.msa
-11/04 18:36:26 - ReadingError : mesh\\etc063_off.msa
-11/04 18:36:26 - ReadingError : mesh\\etc060_off.msa
+--------------------------------------------------------------------------
+>>> Logging System turn on.
+>>> mark 
+06/11 21:29:15 - VertexShader HW Accel Enabled
+06/11 21:29:15 - Error in Init Render Target Texture
+06/11 21:29:16 - Reading Error : mesh\\etc054_off.msa
+06/11 21:29:16 - Reading Error : mesh\\etc055_off.msa
+06/11 21:29:16 - Reading Error : mesh\\etc057_off.msa
+06/11 21:29:16 - Reading Error : mesh\\etc051_off.msa
+06/11 21:29:16 - Reading Error : mesh\\etc063_off.msa
+06/11 21:29:16 - Reading Error : mesh\\etc060_off.msa
+06/11 21:29:30 - VertexShader HW Accel Enabled
+06/11 21:29:30 - Reading Error : mesh\\etc055_off.msa
+06/11 21:29:30 - Reading Error : mesh\\etc054_off.msa
+06/11 21:29:30 - Reading Error : mesh\\etc051_off.msa
+06/11 21:29:30 - Reading Error : mesh\\etc057_off.msa
+--------------------------------------------------------------------------
+>>> Logging System turn on.
+>>> mark 
+06/11 21:29:32 - VertexShader HW Accel Enabled
+06/11 21:29:32 - Error in Init Render Target Texture
+06/11 21:29:33 - Reading Error : mesh\\etc055_off.msa
+06/11 21:29:33 - Reading Error : mesh\\etc063_off.msa
+06/11 21:29:35 - Reading Error : mesh\\etc052_off.msa
+06/11 21:29:46 - VertexShader HW Accel Enabled
+06/11 21:29:46 - VertexShader HW Accel Enabled
+06/11 21:29:46 - Reading Error : mesh\\etc055_off.msa
+06/11 21:29:46 - Reading Error : mesh\\etc063_off.msa
+06/11 21:29:46 - Reading Error : mesh\\etc055_off.msa
+06/11 21:29:46 - Reading Error : mesh\\etc054_off.msa
+06/11 21:29:46 - Reading Error : mesh\\etc051_off.msa
+06/11 21:29:46 - Reading Error : mesh\\etc057_off.msa
+--------------------------------------------------------------------------
+>>> Logging System turn on.
+>>> mark 
+06/11 21:29:50 - VertexShader HW Accel Enabled
+06/11 21:29:50 - Error in Init Render Target Texture
+06/11 21:29:50 - Reading Error : mesh\\etc055_off.msa
+06/11 21:29:50 - Reading Error : mesh\\etc063_off.msa
+06/11 21:29:52 - Reading Error : mesh\\etc052_off.msa
+06/11 21:30:03 - VertexShader HW Accel Enabled
+06/11 21:30:03 - VertexShader HW Accel Enabled
+06/11 21:30:03 - VertexShader HW Accel Enabled
+06/11 21:30:03 - Reading Error : mesh\\etc055_off.msa
+06/11 21:30:03 - Reading Error : mesh\\etc055_off.msa
+06/11 21:30:03 - Reading Error : mesh\\etc063_off.msa
+06/11 21:30:03 - Reading Error : mesh\\etc055_off.msa
+06/11 21:30:03 - Reading Error : mesh\\etc054_off.msa
+06/11 21:30:03 - Reading Error : mesh\\etc051_off.msa
+06/11 21:30:03 - Reading Error : mesh\\etc057_off.msa
+06/11 21:30:03 - Reading Error : mesh\\etc063_off.msa

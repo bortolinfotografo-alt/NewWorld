@@ -119,6 +119,15 @@ void Exec_MSG_CombineItemOdin(int conn, char* pMsg)
 	}
 
 
+	if (combine == 0)
+	{
+		SendClientMessage(conn, "Combinacao invalida. Verifique os itens e as quantidades.");
+		SendClientSignalParm(conn, ESCENE_FIELD, _MSG_CombineComplete, 0);
+		SendEtc(conn);
+		SendCarry(conn);
+		return;
+	}
+
 	for (int i = 0; i < MAX_COMBINE; i++)
 	{
 		if (m->Item[i].sIndex == 0)
@@ -385,7 +394,14 @@ void Exec_MSG_CombineItemOdin(int conn, char* pMsg)
 				BASE_SetItemSanc(&pMob[conn].MOB.Carry[m->InvenPos[2]], 15, gem);
 				NewSanc = 15;
 			}
-			char tt[256];
+			if (NewSanc >= 12)
+			{
+				if (NewSanc == 15)
+					SendNotice(strFmt("> > > %s refinou %s para +15! Parabens! < < <", pMob[conn].MOB.MobName, g_pItemList[pMob[conn].MOB.Carry[m->InvenPos[2]].sIndex].Name));
+				else
+					SendNotice(strFmt("> > > %s refinou %s para +%d! < < <", pMob[conn].MOB.MobName, g_pItemList[pMob[conn].MOB.Carry[m->InvenPos[2]].sIndex].Name, NewSanc));
+			}
+						char tt[256];
 
 			SendClientSignalParm(conn, ESCENE_FIELD, _MSG_CombineComplete, 1);
 
@@ -470,7 +486,8 @@ void Exec_MSG_CombineItemOdin(int conn, char* pMsg)
 
 				int Extra = BASE_GetItemAbility(&m->Item[2], EF_ITEMLEVEL); //TRAVAR ITEMS C
 
-				if (Extra <= 4)
+				int nPosRef = g_pItemList[m->Item[2].sIndex].nPos;
+				if (Extra <= 4 && nPosRef != 256 && nPosRef != 512 && nPosRef != 1024)
 				{
 					SendClientMessage(conn, "Items de Rank B ou Inferior Proibidos de fazer +12"); //TRAVAR ITEMS C
 					SendClientSignalParm(conn, ESCENE_FIELD, _MSG_CombineComplete, 0);

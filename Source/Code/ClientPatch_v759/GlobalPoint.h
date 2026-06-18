@@ -17,9 +17,12 @@ public:
 	static int Jephi;
 	static int PixValue;
 	static int ItemLevel[5];
+	static int AutoTradePreviewIndex;
 	static bool gModoFoto;
 	static bool gModoChat;
 	static bool gModoLoja;
+	static bool AutoTradePreviewVisible;
+	static bool AutoTradePreviewCloseSent;
 	int SendClientMsg;
 	int EnableLogFile;
 	char* MsgBox_Title;

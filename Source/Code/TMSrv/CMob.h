@@ -88,7 +88,7 @@ public:
 
 	int ForceMobDamage; // 2250 - 2253
 	int Accuracy; // 2254 - 2257
-	int HpAbs; // 2258 - 2261
+	int HpAbs; // Legacy name: life-steal magnitude, not defensive absorption.
 
 	int PvPDamage; // 2262 - 2265
 	int ReflectPvP; // 2266 - 2269
@@ -163,6 +163,7 @@ public:
 	void GetNextRandomPos		   ();
 	void CGetNextRandomPos		   ();
    	int  GetEnemyFromView	       (void);
+	int  GetMobEnemyForSummon      (void);
 	void AddChaosPoints(int points);
 	void Clear();
 	int ClientIndex;

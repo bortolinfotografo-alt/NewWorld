@@ -13,6 +13,29 @@
 #include "wMySQL.h"
 #include "Ranking.h"
 
+static int SafeRankingAtoi(const char* value, int fallback = 0)
+{
+	if (value == NULL || value[0] == 0)
+		return fallback;
+
+	return atoi(value);
+}
+
+static int ClampRankingClass(int value)
+{
+	if (value < 0 || value > 3)
+		return 0;
+
+	return value;
+}
+
+static int ClampRankingEvolution(int value)
+{
+	if (value < 1 || value > 5)
+		return 1;
+
+	return value;
+}
 
 void doRanking(int conn)
 {
@@ -89,24 +112,31 @@ void sendRanking(int conn, int state) {
 	int PvP[50] = {};
 	int i = 0;
 
+	for (int j = 0; j < 50; j++)
+	{
+		RankClasse[j] = 0;
+		RankEvolution[j] = 1;
+	}
+
 	if (state == 0) {
-		sprintf(xQuery, "SELECT * FROM `characteres` ORDER BY `evolution` DESC, `level` DESC LIMIT 50");
+		sprintf(xQuery, "SELECT COALESCE(`nick`, ''), COALESCE(`level`, 0), COALESCE(`class`, 0), GREATEST(LEAST(COALESCE(`evolution`, 1), 5), 1), COALESCE(`frags`, 0) FROM `characteres` WHERE `nick` NOT LIKE '-ADM-%%' AND `nick` NOT LIKE 'ADM-%%' AND `nick` NOT LIKE '[ADM]%%' AND `nick` NOT LIKE '-GM-%%' AND `nick` NOT LIKE 'GM-%%' AND `nick` NOT LIKE '[GM]%%' ORDER BY COALESCE(`evolution`, 0) DESC, COALESCE(`level`, 0) DESC LIMIT 50");
 		MYSQL_ROW row;
 		MYSQL* wSQL = pc.wStart();
 		MYSQL_RES* result = pc.wRes(wSQL, xQuery);
 
 		if (result == NULL)
 		{
+			SendClientMessage(conn, "Ranking indisponivel. Verifique a conexao com o banco.");
 			return;
 		}
 
-		while ((row = mysql_fetch_row(result)) != NULL)
+		while (i < 50 && (row = mysql_fetch_row(result)) != NULL)
 		{
-			mobName[i] = row[3];
-			RankLevel[i] = atoi(row[4]) + 1;
-			RankClasse[i] = atoi(row[5]);
-			RankEvolution[i] = atoi(row[6]);
-			PvP[i] = atoi(row[12]);
+			mobName[i] = row[0] ? row[0] : "";
+			RankLevel[i] = SafeRankingAtoi(row[1]) + 1;
+			RankClasse[i] = ClampRankingClass(SafeRankingAtoi(row[2]));
+			RankEvolution[i] = ClampRankingEvolution(SafeRankingAtoi(row[3], 1));
+			PvP[i] = SafeRankingAtoi(row[4]);
 			i++;
 		}
 
@@ -119,10 +149,11 @@ void sendRanking(int conn, int state) {
 		sm.State = state;
 
 		for (int i = 0; i < 50; i++) {
-			strncpy(sm.RankName[i], mobName[i].c_str(), sizeof(sm.RankName[i]));
+			strncpy(sm.RankName[i], mobName[i].c_str(), sizeof(sm.RankName[i]) - 1);
+			sm.RankName[i][sizeof(sm.RankName[i]) - 1] = 0;
 			sm.RankLevel[i] = RankLevel[i];
-			sm.RankClasse[i] = RankClasse[i];
-			sm.RankEvolution[i] = RankEvolution[i];
+			sm.RankClasse[i] = ClampRankingClass(RankClasse[i]);
+			sm.RankEvolution[i] = ClampRankingEvolution(RankEvolution[i]);
 			sm.PvP[i] = PvP[i];
 		}
 
@@ -136,26 +167,29 @@ void sendRanking(int conn, int state) {
 
 		if (!pUser[conn].cSock.AddMessage((char*)&sm, sizeof(MSG_SendRanking)))
 			CloseUser(conn);
+
+		mysql_free_result(result);
 	}
 
 	if (state == 1) {
-		sprintf(xQuery, "SELECT * FROM `characteres` ORDER BY `frags` DESC LIMIT 50");
+		sprintf(xQuery, "SELECT COALESCE(`nick`, ''), COALESCE(`level`, 0), COALESCE(`class`, 0), GREATEST(LEAST(COALESCE(`evolution`, 1), 5), 1), COALESCE(`frags`, 0) FROM `characteres` WHERE `nick` NOT LIKE '-ADM-%%' AND `nick` NOT LIKE 'ADM-%%' AND `nick` NOT LIKE '[ADM]%%' AND `nick` NOT LIKE '-GM-%%' AND `nick` NOT LIKE 'GM-%%' AND `nick` NOT LIKE '[GM]%%' ORDER BY COALESCE(`frags`, 0) DESC LIMIT 50");
 		MYSQL_ROW row;
 		MYSQL* wSQL = pc.wStart();
 		MYSQL_RES* result = pc.wRes(wSQL, xQuery);
 
 		if (result == NULL)
 		{
+			SendClientMessage(conn, "Ranking indisponivel. Verifique a conexao com o banco.");
 			return;
 		}
 
-		while ((row = mysql_fetch_row(result)) != NULL)
+		while (i < 50 && (row = mysql_fetch_row(result)) != NULL)
 		{
-			mobName[i] = row[3];
-			RankLevel[i] = atoi(row[4]) + 1;
-			RankClasse[i] = atoi(row[5]);
-			RankEvolution[i] = atoi(row[6]);
-			PvP[i] = atoi(row[11]);
+			mobName[i] = row[0] ? row[0] : "";
+			RankLevel[i] = SafeRankingAtoi(row[1]) + 1;
+			RankClasse[i] = ClampRankingClass(SafeRankingAtoi(row[2]));
+			RankEvolution[i] = ClampRankingEvolution(SafeRankingAtoi(row[3], 1));
+			PvP[i] = SafeRankingAtoi(row[4]);
 			i++;
 		}
 
@@ -168,10 +202,11 @@ void sendRanking(int conn, int state) {
 		sm.State = state;
 
 		for (int i = 0; i < 50; i++) {
-			strncpy(sm.RankName[i], mobName[i].c_str(), sizeof(sm.RankName[i]));
+			strncpy(sm.RankName[i], mobName[i].c_str(), sizeof(sm.RankName[i]) - 1);
+			sm.RankName[i][sizeof(sm.RankName[i]) - 1] = 0;
 			sm.RankLevel[i] = RankLevel[i];
-			sm.RankClasse[i] = RankClasse[i];
-			sm.RankEvolution[i] = RankEvolution[i];
+			sm.RankClasse[i] = ClampRankingClass(RankClasse[i]);
+			sm.RankEvolution[i] = ClampRankingEvolution(RankEvolution[i]);
 			sm.PvP[i] = PvP[i];
 		}
 
@@ -185,5 +220,7 @@ void sendRanking(int conn, int state) {
 
 		if (!pUser[conn].cSock.AddMessage((char*)&sm, sizeof(MSG_SendRanking)))
 			CloseUser(conn);
+
+		mysql_free_result(result);
 	}
 }

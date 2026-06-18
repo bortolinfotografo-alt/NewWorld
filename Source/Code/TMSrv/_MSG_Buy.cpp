@@ -413,8 +413,6 @@ void Exec_MSG_Buy(int conn, char* pMsg)
 		return;
 	}
 
-	int Price = g_pItemList[itemIndex].Price;
-
 	int Qnt = 1;
 
 	for (int i = 0; i < 3; i++) {
@@ -422,26 +420,30 @@ void Exec_MSG_Buy(int conn, char* pMsg)
 			Qnt = pMob[TargetID].MOB.Carry[TargetInvenPos].stEffect[i].cValue;
 	}
 
-	Price = Price * Qnt;
+	long long PriceValue = (long long)g_pItemList[itemIndex].Price * Qnt;
 
+	if (itemIndex == 4011 && (pMob[TargetID].GenerateIndex == 4724 || _stricmp(pMob[TargetID].MOB.MobName, "BETA_A") == 0 || _stricmp(pMob[TargetID].MOB.MobName, "BETA A") == 0))
+		PriceValue = 0;
 
+	if (PriceValue < 0 || PriceValue > 2000000000LL)
+		return;
+
+	int Price = (int)PriceValue;
 	int Price2 = Price;
 	int Village = BASE_GetVillage(pMob[TargetID].TargetX, pMob[TargetID].TargetY);
 	int CityTax = g_pGuildZone[Village].CityTax;
+	int GuildTax = 0;
 
 	if (Village < 0 || Village >= 5 || CityTax <= 0 || CityTax >= 30)
 		goto LABEL_BUY1;
 
-	if (Price < 100000)
-		Price += Price * CityTax / 100;
+	PriceValue += PriceValue * CityTax / 100;
 
-	else
-		Price += Price * CityTax / 100;
-
-	if (Price < 0)
+	if (PriceValue < 0 || PriceValue > 2000000000LL)
 		return;
 
-	int GuildTax = (Price - Price2) / 2;
+	Price = (int)PriceValue;
+	GuildTax = (Price - Price2) / 2;
 LABEL_BUY1:
 
 	int bPrice = Price;

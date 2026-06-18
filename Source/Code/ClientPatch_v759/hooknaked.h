@@ -27,6 +27,8 @@ public:
 	static void NKD_ItemPrice_FormatDecimal_02();
 	static void NKD_ItemPrice_FormatDecimal();
 	static void NKD_ChangeTabColor();
+	static void NKD_SetTextReplace();
+	static void NKD_TextCacheReplace();
 	static void NKD_NewItensDays_1();
 	static void NKD_NewItensDays_2();
 	static void NKD_FixMageMacro();

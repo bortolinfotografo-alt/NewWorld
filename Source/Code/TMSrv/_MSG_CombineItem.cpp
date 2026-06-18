@@ -104,6 +104,8 @@ void Exec_MSG_CombineItem(int conn, char* pMsg)
 				SendClientMessage(conn, "Sucesso na Composição Anct");
 				SendClientSignalParm(conn, ESCENE_FIELD, _MSG_CombineComplete, 1);
 				SendItem(conn, ITEM_PLACE_CARRY, ipos, &pMob[conn].MOB.Carry[ipos]);
+
+					SendNotice(strFmt("> > > %s criou um item Ancient! < < <", pMob[conn].MOB.MobName));
 				SendCarry(conn);
 				SaveUser(conn, 0);
 				return;

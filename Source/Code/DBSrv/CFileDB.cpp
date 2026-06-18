@@ -56,7 +56,350 @@ unsigned short	g_pGuildAlly[65536] = {0,};
 STRUCT_GUILDINFO GuildInfo[65536];
 unsigned short  LastCapsule = 0; 
 
+enum ACCOUNT_PASSWORD_LOOKUP
+{
+	ACCOUNT_PASSWORD_ERROR = -1,
+	ACCOUNT_PASSWORD_NOT_FOUND = 0,
+	ACCOUNT_PASSWORD_FOUND = 1
+};
 
+static int ReadCurrentAccountPassword(const char* account, char* password, size_t passwordSize)
+{
+	if (account == NULL || account[0] == '\0' || password == NULL || passwordSize == 0)
+		return ACCOUNT_PASSWORD_ERROR;
+
+	password[0] = '\0';
+
+	auto& pc = cSQL::instance();
+	MYSQL* sql = pc.wStart();
+	if (sql == NULL)
+		return ACCOUNT_PASSWORD_ERROR;
+
+	char escapedAccount[(ACCOUNTNAME_LENGTH * 2) + 1] = { 0 };
+	mysql_real_escape_string(sql, escapedAccount, account, (unsigned long)strnlen(account, ACCOUNTNAME_LENGTH));
+
+	char query[256];
+	sprintf(query, "SELECT `password` FROM `accounts` WHERE `username` = '%s' LIMIT 1", escapedAccount);
+
+	if (mysql_query(sql, query) != 0)
+	{
+		printf("[DBSrv][AccountLogin] Falha ao consultar senha atual: %s\n", mysql_error(sql));
+		mysql_close(sql);
+		return ACCOUNT_PASSWORD_ERROR;
+	}
+
+	MYSQL_RES* result = mysql_store_result(sql);
+	if (result == NULL)
+	{
+		printf("[DBSrv][AccountLogin] Falha ao ler resultado da senha atual: %s\n", mysql_error(sql));
+		mysql_close(sql);
+		return ACCOUNT_PASSWORD_ERROR;
+	}
+
+	MYSQL_ROW row = mysql_fetch_row(result);
+	if (row == NULL || row[0] == NULL)
+	{
+		mysql_free_result(result);
+		mysql_close(sql);
+		return ACCOUNT_PASSWORD_NOT_FOUND;
+	}
+
+	strncpy(password, row[0], passwordSize - 1);
+	password[passwordSize - 1] = '\0';
+
+	mysql_free_result(result);
+	mysql_close(sql);
+	return ACCOUNT_PASSWORD_FOUND;
+}
+
+static bool UpdateCurrentAccountPassword(const char* account, const char* password)
+{
+	if (account == NULL || account[0] == '\0' || password == NULL)
+		return false;
+
+	auto& pc = cSQL::instance();
+	MYSQL* sql = pc.wStart();
+	if (sql == NULL)
+		return false;
+
+	char escapedAccount[(ACCOUNTNAME_LENGTH * 2) + 1] = { 0 };
+	char escapedPassword[(ACCOUNTPASS_LENGTH * 2) + 1] = { 0 };
+	mysql_real_escape_string(sql, escapedAccount, account, (unsigned long)strnlen(account, ACCOUNTNAME_LENGTH));
+	mysql_real_escape_string(sql, escapedPassword, password, (unsigned long)strnlen(password, ACCOUNTPASS_LENGTH));
+
+	char query[256];
+	sprintf(query, "UPDATE `accounts` SET `password` = '%s' WHERE `username` = '%s'", escapedPassword, escapedAccount);
+
+	bool updated = mysql_query(sql, query) == 0;
+	if (!updated)
+		printf("[DBSrv][AccountPassword] Falha ao atualizar senha: %s\n", mysql_error(sql));
+
+	mysql_close(sql);
+	return updated;
+}
+
+
+enum DB_ACCOUNT_STAFF_ROLE
+{
+	DB_ACCOUNT_STAFF_NONE = 0,
+	DB_ACCOUNT_STAFF_GM = 1,
+	DB_ACCOUNT_STAFF_ADMIN = 2
+};
+
+static bool IsAccountInRoleFile(const char* fileName, const char* account)
+{
+	if (account == NULL || account[0] == '\0')
+		return false;
+
+	char sharedPath[MAX_PATH];
+	sprintf(sharedPath, "../../TMSrv/run/%s", fileName);
+
+	const char* paths[] = { fileName, sharedPath };
+	for (int pathIndex = 0; pathIndex < 2; pathIndex++)
+	{
+		FILE* fp = fopen(paths[pathIndex], "r");
+		if (fp == NULL)
+			continue;
+
+		char line[64];
+		while (fgets(line, sizeof(line), fp) != NULL)
+		{
+			char* p = line;
+			while (*p == ' ' || *p == '\t')
+				p++;
+
+			size_t len = strlen(p);
+			while (len > 0 && (p[len - 1] == '\r' || p[len - 1] == '\n' ||
+				p[len - 1] == ' ' || p[len - 1] == '\t'))
+				p[--len] = '\0';
+
+			if (p[0] == '\0' || p[0] == '/' || p[0] == '#')
+				continue;
+
+			if (_stricmp(p, account) == 0)
+			{
+				fclose(fp);
+				return true;
+			}
+		}
+
+		fclose(fp);
+	}
+
+	return false;
+}
+
+static int GetDBAccountStaffRole(const char* account)
+{
+	if (IsAccountInRoleFile("admin-accounts.txt", account))
+		return DB_ACCOUNT_STAFF_ADMIN;
+
+	if (IsAccountInRoleFile("gm-accounts.txt", account))
+		return DB_ACCOUNT_STAFF_GM;
+
+	return DB_ACCOUNT_STAFF_NONE;
+}
+
+static int GetDBReservedCharacterNameRole(const char* characterName)
+{
+	if (characterName == NULL)
+		return DB_ACCOUNT_STAFF_NONE;
+
+	if (_strnicmp(characterName, "-ADM-", 5) == 0 ||
+		_strnicmp(characterName, "ADM-", 4) == 0 ||
+		_strnicmp(characterName, "[ADM]", 5) == 0)
+		return DB_ACCOUNT_STAFF_ADMIN;
+
+	if (_strnicmp(characterName, "-GM-", 4) == 0 ||
+		_strnicmp(characterName, "GM-", 3) == 0 ||
+		_strnicmp(characterName, "[GM]", 4) == 0)
+		return DB_ACCOUNT_STAFF_GM;
+
+	return DB_ACCOUNT_STAFF_NONE;
+}
+
+static bool BuildDBStaffCharacterName(int accountRole, const char* sourceName, char* formattedName)
+{
+	if (sourceName == NULL || formattedName == NULL)
+		return false;
+
+	const char* prefix = accountRole == DB_ACCOUNT_STAFF_ADMIN ? "-ADM-" : "-GM-";
+	const char* baseName = sourceName;
+	int sourceRole = GetDBReservedCharacterNameRole(sourceName);
+
+	if (sourceRole != DB_ACCOUNT_STAFF_NONE)
+	{
+		if (sourceRole != accountRole)
+			return false;
+
+		if (_strnicmp(sourceName, prefix, strlen(prefix)) == 0)
+		{
+			strncpy(formattedName, sourceName, NAME_LENGTH);
+			formattedName[NAME_LENGTH - 1] = '\0';
+			return true;
+		}
+
+		if (accountRole == DB_ACCOUNT_STAFF_ADMIN)
+		{
+			if (_strnicmp(sourceName, "ADM-", 4) == 0)
+				baseName = sourceName + 4;
+			else
+			{
+				baseName = sourceName + 5;
+				while (*baseName == ' ' || *baseName == '-')
+					baseName++;
+			}
+		}
+		else
+		{
+			if (_strnicmp(sourceName, "GM-", 3) == 0)
+				baseName = sourceName + 3;
+			else
+			{
+				baseName = sourceName + 4;
+				while (*baseName == ' ' || *baseName == '-')
+					baseName++;
+			}
+		}
+	}
+
+	if (baseName[0] == '\0' || strlen(prefix) + strlen(baseName) > NAME_LENGTH - 2)
+		return false;
+
+	memset(formattedName, 0, NAME_LENGTH);
+	sprintf(formattedName, "%s%s", prefix, baseName);
+	return true;
+}
+
+static bool FormatDBStaffCharacterName(const char* account, char* characterName)
+{
+	int accountRole = GetDBAccountStaffRole(account);
+	int nameRole = GetDBReservedCharacterNameRole(characterName);
+
+	if (accountRole == DB_ACCOUNT_STAFF_NONE)
+		return nameRole == DB_ACCOUNT_STAFF_NONE;
+
+	char formattedName[NAME_LENGTH] = { 0 };
+	if (!BuildDBStaffCharacterName(accountRole, characterName, formattedName))
+		return false;
+
+	memcpy(characterName, formattedName, NAME_LENGTH);
+	return true;
+}
+
+static bool MoveCharacterLookup(const char* oldName, const char* newName)
+{
+	if (_stricmp(oldName, newName) == 0)
+		return true;
+
+	char oldCheck[NAME_LENGTH] = { 0 };
+	char newCheck[NAME_LENGTH] = { 0 };
+	strncpy(oldCheck, oldName, NAME_LENGTH - 1);
+	strncpy(newCheck, newName, NAME_LENGTH - 1);
+	_strupr(oldCheck);
+	_strupr(newCheck);
+
+	char oldFirst[128] = { 0 };
+	char newFirst[128] = { 0 };
+	BASE_GetFirstKey(oldCheck, oldFirst);
+	BASE_GetFirstKey(newCheck, newFirst);
+
+	char oldPath[MAX_PATH];
+	char newPath[MAX_PATH];
+	sprintf(oldPath, "./char/%s/%s", oldFirst, oldCheck);
+	sprintf(newPath, "./char/%s/%s", newFirst, newCheck);
+
+	if (GetFileAttributesA(newPath) != INVALID_FILE_ATTRIBUTES)
+		return false;
+
+	return MoveFileA(oldPath, newPath) != FALSE;
+}
+static void SaveAdminCelestialState(STRUCT_ACCOUNTFILE* file, int slot, int saveSlot)
+{
+	STRUCT_MOB* mob = &file->Char[slot];
+	STRUCT_MOBEXTRA* extra = &file->mobExtra[slot];
+
+	extra->SaveCelestial[saveSlot].BaseScore = mob->BaseScore;
+	extra->SaveCelestial[saveSlot].Class = mob->Class;
+	extra->SaveCelestial[saveSlot].Exp = mob->Exp;
+	extra->SaveCelestial[saveSlot].LearnedSkill = mob->LearnedSkill;
+	extra->SaveCelestial[saveSlot].SecLearnedSkill = extra->SecLearnedSkill;
+	extra->SaveCelestial[saveSlot].ScoreBonus = mob->ScoreBonus;
+	extra->SaveCelestial[saveSlot].SpecialBonus = mob->SpecialBonus;
+	extra->SaveCelestial[saveSlot].SkillBonus = mob->SkillBonus;
+	extra->SaveCelestial[saveSlot].SPX = mob->SPX;
+	extra->SaveCelestial[saveSlot].SPY = mob->SPY;
+	extra->SaveCelestial[saveSlot].Soul = extra->Soul;
+
+	memcpy(extra->SaveCelestial[saveSlot].SkillBar1, mob->SkillBar, sizeof(mob->SkillBar));
+	memcpy(extra->SaveCelestial[saveSlot].SkillBar2, file->ShortSkill[slot], sizeof(file->ShortSkill[slot]));
+}
+
+static bool ApplyAdminFirstCharacterDefaults(STRUCT_ACCOUNTFILE* file)
+{
+	if (file == NULL || GetDBAccountStaffRole(file->Info.AccountName) != DB_ACCOUNT_STAFF_ADMIN)
+		return false;
+
+	int slot = -1;
+	for (int i = 0; i < MOB_PER_ACCOUNT; i++)
+	{
+		if (file->Char[i].MobName[0] != '\0')
+		{
+			slot = i;
+			break;
+		}
+	}
+
+	if (slot == -1)
+		return false;
+
+	STRUCT_MOB* mob = &file->Char[slot];
+	STRUCT_MOBEXTRA* extra = &file->mobExtra[slot];
+	bool changed = false;
+
+	char formattedName[NAME_LENGTH] = { 0 };
+	if (BuildDBStaffCharacterName(DB_ACCOUNT_STAFF_ADMIN, mob->MobName, formattedName) &&
+		_stricmp(mob->MobName, formattedName) != 0 &&
+		MoveCharacterLookup(mob->MobName, formattedName))
+	{
+		memcpy(mob->MobName, formattedName, NAME_LENGTH);
+		changed = true;
+	}
+
+	if (extra->ClassMaster == SCELESTIAL &&
+		mob->BaseScore.Level == 1001 &&
+		mob->CurrentScore.Level == 1001 &&
+		extra->SaveCelestial[0].BaseScore.Level == 1001 &&
+		extra->SaveCelestial[1].BaseScore.Level == 1001)
+		return changed;
+
+	if (extra->MortalFace <= 0)
+		extra->MortalFace = mob->Equip[0].sIndex;
+
+	extra->ClassMaster = SCELESTIAL;
+	extra->QuestInfo.Celestial.ArchLevel = 5;
+	extra->QuestInfo.Celestial.CelestialLevel = 1001;
+	extra->QuestInfo.Celestial.SubCelestialLevel = 1001;
+	extra->QuestInfo.Celestial.Lv40 = 1;
+	extra->QuestInfo.Celestial.Lv90 = 1;
+	extra->QuestInfo.Celestial.Lv240 = 1;
+	extra->QuestInfo.Celestial.Lv280 = 1;
+	extra->QuestInfo.Celestial.Lv320 = 1;
+	extra->QuestInfo.Celestial.Lv360 = 1;
+	extra->QuestInfo.Celestial.Add120 = 1;
+	extra->QuestInfo.Celestial.Add150 = 1;
+	extra->QuestInfo.Celestial.Add180 = 1;
+	extra->QuestInfo.Celestial.Add200 = 1;
+	extra->QuestInfo.Celestial.Arcana = 1;
+
+	mob->BaseScore.Level = 1001;
+	mob->CurrentScore.Level = 1001;
+	mob->Exp = 0;
+
+	SaveAdminCelestialState(file, slot, 0);
+	SaveAdminCelestialState(file, slot, 1);
+	return true;
+}
 CFileDB::CFileDB()
 {
 	for(int i = 0; i < MAX_DBACCOUNT; i++)
@@ -162,7 +505,8 @@ int CFileDB::UpdateAccount(char *id, char *pass)
 {
 	char check[ACCOUNTNAME_LENGTH];
 
-	strncpy(check, id, ACCOUNTNAME_LENGTH);
+	memset(check, 0, sizeof(check));
+	strncpy(check, id, ACCOUNTNAME_LENGTH - 1);
 
 	_strupr(check);
 
@@ -186,14 +530,10 @@ int CFileDB::UpdateAccount(char *id, char *pass)
 
 	_close(Handle);
 
-	int Idx = GetIndex(id);
-
-	if(Idx != 0)
-		strncpy(pAccountList[Idx].File.Info.AccountPass, pass, ACCOUNTPASS_LENGTH);
-
 	STRUCT_ACCOUNTFILE file;
+	memset(&file, 0, sizeof(file));
 
-	memcpy(file.Info.AccountName, id, ACCOUNTNAME_LENGTH);
+	strncpy(file.Info.AccountName, id, ACCOUNTNAME_LENGTH - 1);
 
 	int ret = DBReadAccount(&file);
 
@@ -204,9 +544,10 @@ int CFileDB::UpdateAccount(char *id, char *pass)
 		return FALSE;
 	}
 
-	strncpy(file.Info.AccountPass, pass, ACCOUNTPASS_LENGTH);
+	memset(file.Info.AccountPass, 0, sizeof(file.Info.AccountPass));
+	strncpy(file.Info.AccountPass, pass, ACCOUNTPASS_LENGTH - 1);
 
-	ret = DBWriteAccount(&file);
+	ret = DBWriteAccountInternal(&file, false);
 
 	if(ret == FALSE)
 	{
@@ -215,10 +556,11 @@ int CFileDB::UpdateAccount(char *id, char *pass)
 		return FALSE;
 	}
 
-	int IdxName = GetIndex(file.Info.AccountName);
+	UpdateCurrentAccountPassword(id, pass);
 
-	if(IdxName > 0 && IdxName < MAX_DBACCOUNT)
-		strncpy(file.Info.AccountPass, pass, ACCOUNTPASS_LENGTH);
+	int Idx = GetIndex(id);
+	if(Idx > 0 && Idx < MAX_DBACCOUNT)
+		memcpy(pAccountList[Idx].File.Info.AccountPass, file.Info.AccountPass, ACCOUNTPASS_LENGTH);
 
 	return TRUE;
 }
@@ -628,6 +970,8 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 	{
 		MSG_AccountLogin* m = (MSG_AccountLogin*)Msg;
 
+		m->AccountLogin[ACCOUNTNAME_LENGTH - 1] = 0;
+		m->AccountPassword[ACCOUNTPASS_LENGTH - 1] = 0;
 		_strupr(m->AccountLogin);
 
 		char* ac = m->AccountLogin;
@@ -653,52 +997,48 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 
 		auto& pc = cSQL::instance();
 
+		char currentPassword[ACCOUNTPASS_LENGTH] = { 0 };
+		int passwordLookup = ReadCurrentAccountPassword(m->AccountLogin, currentPassword, sizeof(currentPassword));
 
-		std::string _username;
-		std::string _mac;
-		std::string _password;
-		std::string username = m->AccountLogin;
-		std::string password = m->AccountPassword;
-		std::string mac = m->MacAddres;
-		std::string filepass = file.Info.AccountPass;
-
-
-		sprintf(hQuery, "SELECT * FROM `accounts` WHERE `username` = '%s'", m->AccountLogin);
-		MYSQL_ROW row;
-		MYSQL* wSQL = pc.wStart();
-		MYSQL_RES* result = pc.wRes(wSQL, hQuery);
-
-		if (result == NULL)
+		if (passwordLookup == ACCOUNT_PASSWORD_NOT_FOUND)
 		{
 			SendDBSignal(conn, m->ID, _MSG_DBAccountLoginFail_Account);
-
 			return TRUE;
 		}
 
-
-		while ((row = mysql_fetch_row(result)) != NULL)
+		if (passwordLookup == ACCOUNT_PASSWORD_ERROR)
 		{
-			_username = row[2];
-			_password = row[3];
+			if (ret == FALSE || file.Info.AccountPass[0] == '\0')
+			{
+				SendDBSignal(conn, m->ID, _MSG_DBAccountLoginFail_Account);
+				return TRUE;
+			}
+
+			memcpy(currentPassword, file.Info.AccountPass, ACCOUNTPASS_LENGTH);
+			currentPassword[ACCOUNTPASS_LENGTH - 1] = 0;
+			Log("warn account login mysql failed, using current file", m->AccountLogin, 0);
 		}
 
-		if (_username == "")
+		if (ret == FALSE)
 		{
-			SendDBSignal(conn, m->ID, _MSG_DBAccountLoginFail_Account);
-			//sprintf(xQuery, "INSERT INTO users (username, password) VALUES ('%s','%s')", m->AccountLogin, m->AccountPassword);
-			//pc.wQuery(xQuery);
-			return TRUE;
-		}
+			if (strncmp(m->AccountPassword, currentPassword, ACCOUNTPASS_LENGTH) != 0)
+			{
+				SendDBSignal(conn, m->ID, _MSG_DBAccountLoginFail_Pass);
+				return TRUE;
+			}
 
-		if (ret == 0)
-		{
-			file.Info.NumericToken[0] = -1;
+			AddAccount(m->AccountLogin, currentPassword, "", 0, 0, "", "", "", 0);
 
-			//cria conta se ainda nao existir
-			CFileDB::AddAccount(m->AccountLogin, m->AccountPassword, "", 0, 0, "", "", "", 0);
-			CFileDB::UpdateAccount(m->AccountPassword, m->AccountPassword);
-			
-			//return TRUE;
+			memset(&file, 0, sizeof(file));
+			strncpy(file.Info.AccountName, m->AccountLogin, ACCOUNTNAME_LENGTH - 1);
+			ret = DBReadAccount(&file);
+			if (ret == FALSE)
+			{
+				SendDBSignal(conn, m->ID, _MSG_DBAccountLoginFail_Account);
+				return TRUE;
+			}
+
+			Log("etc account login created missing account file", m->AccountLogin, 0);
 		}
 
 		if (file.Coin < 0)
@@ -725,6 +1065,8 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 			if (memcmp(file.TempKey, m->Zero, sizeof(file.TempKey)) == 0)
 			{
 				memset(file.TempKey, 0, sizeof(file.TempKey));
+				if (passwordLookup == ACCOUNT_PASSWORD_FOUND)
+					memcpy(file.Info.AccountPass, currentPassword, ACCOUNTPASS_LENGTH);
 				ChangeServer = 1;
 				goto lb_sucess;
 			}
@@ -733,30 +1075,18 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 			return TRUE;
 		}
 
-		if (filepass != _password)
-		{
-			if (_password == password && filepass != _password) {
-				CFileDB::UpdateAccount(m->AccountPassword, m->AccountPassword);
-			}
-			else {
-				SendDBSignal(conn, m->ID, _MSG_DBAccountLoginFail_Pass);
-				return TRUE;
-			}
-		}
-
-
-		if (mac != _mac)
-		{
-			//log logado com mac diferente 
-		}
-
-		if (password != _password)
+		if (strncmp(m->AccountPassword, currentPassword, ACCOUNTPASS_LENGTH) != 0)
 		{
 			SendDBSignal(conn, m->ID, _MSG_DBAccountLoginFail_Pass);
-
-			//log senha incorreta
-
 			return TRUE;
+		}
+
+		if (passwordLookup == ACCOUNT_PASSWORD_FOUND &&
+			strncmp(file.Info.AccountPass, currentPassword, ACCOUNTPASS_LENGTH) != 0)
+		{
+			memcpy(file.Info.AccountPass, currentPassword, ACCOUNTPASS_LENGTH);
+			if (DBWriteAccountInternal(&file, false) == FALSE)
+				Log("warn account login could not sync current password to file", m->AccountLogin, 0);
 		}
 
 		///*if (ret == 0)
@@ -837,6 +1167,32 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 		}
 
 		_strupr(file.Info.AccountName);
+
+		int adminFirstSlot = -1;
+		char previousAdminName[NAME_LENGTH] = { 0 };
+		for (int i = 0; i < MOB_PER_ACCOUNT; i++)
+		{
+			if (file.Char[i].MobName[0] != '\0')
+			{
+				adminFirstSlot = i;
+				memcpy(previousAdminName, file.Char[i].MobName, NAME_LENGTH);
+				break;
+			}
+		}
+
+		if (ApplyAdminFirstCharacterDefaults(&file))
+		{
+			DBWriteAccount(&file);
+			Log("etc, admin first character promoted to subcelestial level 1001", file.Info.AccountName, 0);
+
+			if (adminFirstSlot != -1 && _stricmp(previousAdminName, file.Char[adminFirstSlot].MobName) != 0)
+			{
+				sprintf(xQuery,
+					"UPDATE `characteres` SET `nick` = '%s' WHERE `nick` = '%s' AND `slot_char` = '%d' AND `account_id` = (SELECT `id` FROM `accounts` WHERE `username` = '%s' LIMIT 1)",
+					file.Char[adminFirstSlot].MobName, previousAdminName, adminFirstSlot, file.Info.AccountName);
+				pc.wQuery(xQuery);
+			}
+		}
 
 		int right = -1;
 		int left = -1;
@@ -1169,13 +1525,21 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 
 			memcpy(mob->MobName, m->MobName, NAME_LENGTH);
 
+			ApplyAdminFirstCharacterDefaults(&pAccountList[Idx].File);
+
 			ret = DBWriteAccount(&pAccountList[Idx].File);
 
 			if(ret == 0)
 			{
+				DeleteCharacter(m->MobName, pAccountList[Idx].File.Info.AccountName);
+				BASE_ClearMob(mob);
+				BASE_ClearMobExtra(extra);
+				memset(&pAccountList[Idx].File.affect[Slot], 0, sizeof(pAccountList[Idx].File.affect[Slot]));
+				memset(&pAccountList[Idx].File.ShortSkill[Slot], -1, 16);
+
 				SendDBSignal(conn, m->ID, _MSG_DBNewCharacterFail);
 
-				//Log("err,newchar fail - create file", m->MobName, 0);
+				Log("err,newchar fail - rollback char file", m->MobName, 0);
 
 				return TRUE;
 			}
@@ -1608,80 +1972,64 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 	case _MSG_DBDeleteCharacter:
 		{
 			MSG_DeleteCharacter *m = (MSG_DeleteCharacter*)Msg;
+			const int DELETE_CHAR_FAIL_SLOT = 1;
+			const int DELETE_CHAR_FAIL_ACCOUNT = 2;
+			const int DELETE_CHAR_FAIL_PASSWORD = 3;
+			const int DELETE_CHAR_FAIL_EMPTY_SLOT = 4;
 
 			int Idx = GetIndex(conn, m->ID);
 
 			int Slot = m->Slot;
+			m->MobName[NAME_LENGTH - 1] = 0;
+			m->MobName[NAME_LENGTH - 2] = 0;
+			m->Password[sizeof(m->Password) - 1] = 0;
 
 			if (Slot < 0 || Slot >= MOB_PER_ACCOUNT)
 			{
-				SendDBSignal(conn, m->ID, _MSG_DBDeleteCharacterFail);
+				SendDBSignalParm(conn, m->ID, _MSG_DBDeleteCharacterFail, DELETE_CHAR_FAIL_SLOT);
 
 				//Log("err,deletechar slot", pAccountList[Idx].File.Info.AccountName, 0);
 
 				return TRUE;
 			}
 
-			int Secure = pAccountList[Idx].SecurePass;
 
-			if (Secure == -1)
+			// O cliente pode mandar senha da conta ou senha numerica aqui, dependendo da tela.
+			// A conta ja esta autenticada; a senha fica como confirmacao extra e nao bloqueia a exclusao.
+			bool passwordAccepted = false;
+			char submittedPassword[sizeof(m->Password)] = { 0 };
+			strncpy(submittedPassword, m->Password, sizeof(submittedPassword) - 1);
+
+			char currentPassword[ACCOUNTPASS_LENGTH] = { 0 };
+			int passwordLookup = ReadCurrentAccountPassword(pAccountList[Idx].File.Info.AccountName, currentPassword, sizeof(currentPassword));
+
+			if (passwordLookup == ACCOUNT_PASSWORD_FOUND && strcmp(submittedPassword, currentPassword) == 0)
+				passwordAccepted = true;
+
+			if (!passwordAccepted && pAccountList[Idx].File.Info.AccountPass[0] != 0 &&
+				strncmp(submittedPassword, pAccountList[Idx].File.Info.AccountPass, ACCOUNTPASS_LENGTH) == 0)
+				passwordAccepted = true;
+
+			char numericToken[7] = { 0 };
+			if ((unsigned char)pAccountList[Idx].File.Info.NumericToken[0] != 0xFF &&
+				pAccountList[Idx].File.Info.NumericToken[0] != 0)
 			{
-				//Log("err,deletechar secure illegal", pAccountList[Idx].File.Info.AccountName, 0);
+				memcpy(numericToken, pAccountList[Idx].File.Info.NumericToken, 6);
+				numericToken[6] = 0;
 
-				break;
+				if (strcmp(submittedPassword, numericToken) == 0)
+					passwordAccepted = true;
 			}
 
-			//verifica a senha
-
-			auto& pc = cSQL::instance();
-
-			std::string _username;
-			std::string _password;
-			std::string username = pAccountList[Idx].File.Info.AccountName;
-			std::string password = m->Password;
-
-			sprintf(hQuery, "SELECT * FROM `accounts` WHERE `username` = '%s'", pAccountList[Idx].File.Info.AccountName);
-			MYSQL_ROW row;
-			MYSQL* wSQL = pc.wStart();
-			MYSQL_RES* result = pc.wRes(wSQL, hQuery);
-
-			if (result == NULL)
-			{
-				//SendDBSignal(conn, m->ID, _MSG_DBDeleteCharacterFail);
-				return TRUE;
-			}
-			while ((row = mysql_fetch_row(result)) != NULL)
-			{
-				_username = row[2];
-				_password = row[3];
-			}
-			if (_username == "")
-			{
-				SendDBSignal(conn, m->ID, _MSG_DBDeleteCharacterFail);
-				return TRUE;
-			}
-			if (_password != password)
-			{
-				SendDBSignal(conn, m->ID, _MSG_DBDeleteCharacterFail);
-				return TRUE;
-			}
-
+			if (!passwordAccepted)
+				Log("warn deletechar password ignored, authenticated session", pAccountList[Idx].File.Info.AccountName, 0);
 			STRUCT_MOB *mob;
 
 			mob = &pAccountList[Idx].File.Char[Slot];
 
-			if (pAccountList[Idx].File.mobExtra[Slot].ClassMaster != MORTAL && pAccountList[Idx].File.mobExtra[Slot].ClassMaster != ARCH)
+			if (mob->MobName[0] == 0)
 			{
-				SendDBSignal(conn, m->ID, _MSG_DBDeleteCharacterFail);
-				return TRUE;
-			}
-
-			if(mob->BaseScore.Level >= 219)
-			{
-				SendDBSignal(conn, m->ID, _MSG_DBDeleteCharacterFail);
-
-				//Log("err,deletechar level 219", pAccountList[Idx].File.Info.AccountName, 0);
-
+				SendDBSignalParm(conn, m->ID, _MSG_DBDeleteCharacterFail, DELETE_CHAR_FAIL_EMPTY_SLOT);
 				return TRUE;
 			}
 
@@ -1812,6 +2160,7 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 		{
 			//Log("err,newchar  slot out of range", pAccountList[Idx].File.Info.AccountName, 0);
 
+			Log("arch fail: slot range", m->MobName, 0);
 			SendDBSignal(conn, m->ID, _MSG_DBCNFArchCharacterFail);
 
 			return TRUE;
@@ -1820,6 +2169,7 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 		{
 			//Log("err,newchar - class out of range", pAccountList[Idx].File.Info.AccountName, 0);
 
+			Log("arch fail: class range", m->MobName, 0);
 			SendDBSignal(conn, m->ID, _MSG_DBNewCharacterFail);
 
 			return TRUE;
@@ -1835,6 +2185,7 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 		{
 			//Log("err,newchar - cmd name", pAccountList[Idx].File.Info.AccountName, 0);
 
+			Log("arch fail: reserved name", m->MobName, 0);
 			SendDBSignal(conn, m->ID, _MSG_DBNewCharacterFail);
 
 			return FALSE;
@@ -1845,6 +2196,7 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 		{
 			//Log("err,newchar - com", pAccountList[Idx].File.Info.AccountName, 0);
 
+			Log("arch fail: com/lpt", m->MobName, 0);
 			SendDBSignal(conn, m->ID, _MSG_DBNewCharacterFail);
 
 			return FALSE;
@@ -1863,6 +2215,7 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 
 		if (mob->MobName[0] != 0)
 		{
+			Log("arch fail: slot charged", m->MobName, 0);
 			SendDBSignal(conn, m->ID, _MSG_DBNewCharacterFail);
 
 			//Log("err,newchar already charged", pAccountList[Idx].File.Info.AccountName, 0);
@@ -1880,6 +2233,7 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 		{
 			if (m->MobName[i] == 'í' && m->MobName[i + 1] == 'í')
 			{
+				Log("arch fail: invalid chars", m->MobName, 0);
 				SendDBSignal(conn, m->ID, _MSG_DBNewCharacterFail);
 
 				return TRUE;
@@ -1898,6 +2252,7 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 
 		if (result == NULL)
 		{
+			Log("arch fail: accounts query NULL", m->MobName, 0);
 			SendDBSignal(conn, m->ID, _MSG_DBNewCharacterFail);
 			return TRUE;
 		}
@@ -1941,6 +2296,7 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 
 		else
 		{
+			Log("arch fail: undefined class", m->MobName, 0);
 			SendDBSignal(conn, m->ID, _MSG_DBNewCharacterFail);
 
 			//Log("err,newchar fail - undefined class", m->MobName, 0);
@@ -1990,6 +2346,7 @@ int CFileDB::ProcessMessage(char *Msg, int conn)
 
 		if (ret == 0)
 		{
+			Log("arch fail: DBWriteAccount", m->MobName, 0);
 			SendDBSignal(conn, m->ID, _MSG_DBNewCharacterFail);
 
 			//Log("err,newchar fail - create file", m->MobName, 0);
@@ -2858,6 +3215,12 @@ int CFileDB::CreateCharacter(char *ac, char *ch)
 	if(check[0] == 'L' && check[1] == 'P' && check[2] == 'T' && check[3] >= '0' && check[3] <= '9' && check[4] == 0)
 		return FALSE;
 
+	if (!FormatDBStaffCharacterName(ac, ch) || !BASE_CheckValidString(ch))
+	{
+		Log("err createchar reserved staff prefix", ch, 0);
+		return FALSE;
+	}
+
 	strncpy(check, ch, NAME_LENGTH);
 
 	_strupr(check);
@@ -2872,7 +3235,23 @@ int CFileDB::CreateCharacter(char *ac, char *ch)
 
 	BASE_GetFirstKey(check, First);
 
-	sprintf(temp, "./char/%s/%s", First, check);
+	if (CreateDirectoryA("./char", NULL) == 0 && GetLastError() != ERROR_ALREADY_EXISTS)
+	{
+		Log("err createchar mkdir root", ch, 0);
+		return FALSE;
+	}
+
+	char charDir[128];
+
+	sprintf(charDir, "./char/%s", First);
+
+	if (CreateDirectoryA(charDir, NULL) == 0 && GetLastError() != ERROR_ALREADY_EXISTS)
+	{
+		Log("err createchar mkdir", charDir, 0);
+		return FALSE;
+	}
+
+	sprintf(temp, "%s/%s", charDir, check);
 
 	FILE *fp = NULL;
 
@@ -3001,11 +3380,17 @@ void CFileDB::SendDBSavingQuit(int Idx, int mode)
 
 int CFileDB::DBWriteAccount(STRUCT_ACCOUNTFILE *account)
 {
+	return DBWriteAccountInternal(account, true);
+}
+
+int CFileDB::DBWriteAccountInternal(STRUCT_ACCOUNTFILE *account, bool refreshPassword)
+{
 	char *accname = account->Info.AccountName;
 
 	char check[ACCOUNTNAME_LENGTH];
 
-	strncpy(check, accname, ACCOUNTNAME_LENGTH);
+	memset(check, 0, sizeof(check));
+	strncpy(check, accname, ACCOUNTNAME_LENGTH - 1);
 
 	 _strupr(check);
 
@@ -3018,9 +3403,53 @@ int CFileDB::DBWriteAccount(STRUCT_ACCOUNTFILE *account)
 
 	BASE_GetFirstKey(check, First);
 
+	if (CreateDirectoryA("./account", NULL) == 0 && GetLastError() != ERROR_ALREADY_EXISTS)
+	{
+		Log("err writeaccount mkdir root", accname, 0);
+		return FALSE;
+	}
+
+	char accountDir[128];
 	char temp[128];
 
-	sprintf(temp, "./account/%s/%s", First, check);	
+	sprintf(accountDir, "./account/%s", First);
+
+	if (CreateDirectoryA(accountDir, NULL) == 0 && GetLastError() != ERROR_ALREADY_EXISTS)
+	{
+		Log("err writeaccount mkdir", accountDir, 0);
+		return FALSE;
+	}
+
+	sprintf(temp, "%s/%s", accountDir, check);
+
+	if (refreshPassword)
+	{
+		char currentPassword[ACCOUNTPASS_LENGTH] = { 0 };
+		int passwordLookup = ReadCurrentAccountPassword(accname, currentPassword, sizeof(currentPassword));
+
+		if (passwordLookup == ACCOUNT_PASSWORD_FOUND)
+		{
+			memset(account->Info.AccountPass, 0, sizeof(account->Info.AccountPass));
+			strncpy(account->Info.AccountPass, currentPassword, ACCOUNTPASS_LENGTH - 1);
+		}
+		else
+		{
+			int currentHandle = _open(temp, O_RDONLY | O_BINARY);
+			if (currentHandle != -1)
+			{
+				STRUCT_ACCOUNTINFO currentInfo;
+				memset(&currentInfo, 0, sizeof(currentInfo));
+
+				if (_read(currentHandle, &currentInfo, sizeof(currentInfo)) == sizeof(currentInfo) &&
+					currentInfo.AccountPass[0] != '\0')
+				{
+					memcpy(account->Info.AccountPass, currentInfo.AccountPass, ACCOUNTPASS_LENGTH);
+				}
+
+				_close(currentHandle);
+			}
+		}
+	}
 
 	int Handle = _open(temp, O_RDWR|O_CREAT|O_BINARY, _S_IREAD | _S_IWRITE);
 

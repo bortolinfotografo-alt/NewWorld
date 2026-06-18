@@ -2,13 +2,16 @@
 #include "GameInterface.h"
 #include "UISlot.h"
 #define JEPHI 8
+#define JEPHI_MOB_FACE 58
+#define JEPHI_CLICK_MARKER 116
 
 int ProcessNPCClick(DWORD* mob)
 {
 	auto Mob = reinterpret_cast<buffer_srd*>(mob);
 	
 
-	if (Mob->mobFace == 58 && Mob->Elmo == 115)//Jephi
+	// Coveiro also uses face 58, so Jephi needs a distinct click marker.
+	if (Mob->mobFace == JEPHI_MOB_FACE && Mob->Elmo == JEPHI_CLICK_MARKER)//Jephi
 	{
 		ConfigR::WindowControl = JEPHI;
 		auto PainelJephi = g_pInterface->Instance()->getGuiFromHandle<UIControl>(117900);

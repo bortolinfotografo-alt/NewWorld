@@ -1,6 +1,93 @@
 #include "main.h"
 #include "../CommonNewInfo.h"
 auto& WYD = HookMgr::instance();
+static DWORD g_SetTextTrampoline = 0;
+static DWORD g_TextCacheTrampoline = 0;
+
+static bool IsServerNameSpace(char value)
+{
+	return value == ' ' || value == '\t' || value == '\r' || value == '\n';
+}
+
+static bool EqualsServerNameText(const char* value, const char* expected)
+{
+	if (!value || !expected)
+		return false;
+
+	while (IsServerNameSpace(*value))
+		value++;
+
+	int valueLen = lstrlenA(value);
+	while (valueLen > 0 && IsServerNameSpace(value[valueLen - 1]))
+		valueLen--;
+
+	int expectedLen = lstrlenA(expected);
+	if (valueLen != expectedLen)
+		return false;
+
+	return CompareStringA(LOCALE_INVARIANT, NORM_IGNORECASE, value, valueLen, expected, expectedLen) == CSTR_EQUAL;
+}
+
+static const char* ReplaceServerNameText(const char* text)
+{
+	if (!text)
+		return text;
+
+	if (EqualsServerNameText(text, "Wyd Kingdom") ||
+		EqualsServerNameText(text, "WYD KINGDOM"))
+		return "Wyd Kingdom";
+
+	if (EqualsServerNameText(text, "The") ||
+		EqualsServerNameText(text, "THE"))
+		return "Wyd";
+
+	if (EqualsServerNameText(text, "Kingdom"))
+		return "Kingdom";
+
+	if (EqualsServerNameText(text, "Canal-1") ||
+		EqualsServerNameText(text, "Wyd Kingdom-1") ||
+		EqualsServerNameText(text, "Kingdom-1"))
+		return "Canal-1";
+
+	if (EqualsServerNameText(text, "Canal-2") ||
+		EqualsServerNameText(text, "Wyd Kingdom-2") ||
+		EqualsServerNameText(text, "Kingdom-2"))
+		return "Canal-2";
+
+	return text;
+}
+
+static DWORD BuildServerNameTrampoline(DWORD address, DWORD stolenSize)
+{
+	BYTE* gateway = (BYTE*)VirtualAlloc(NULL, stolenSize + 5, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	if (!gateway)
+		return 0;
+
+	memcpy(gateway, (void*)address, stolenSize);
+	gateway[stolenSize] = 0xE9;
+
+	DWORD jumpBack = (address + stolenSize) - ((DWORD)gateway + stolenSize + 5);
+	memcpy(gateway + stolenSize + 1, &jumpBack, sizeof(jumpBack));
+	FlushInstructionCache(GetCurrentProcess(), gateway, stolenSize + 5);
+	return (DWORD)gateway;
+}
+
+static void InstallServerNameTextHooks()
+{
+	if (!g_SetTextTrampoline)
+	{
+		g_SetTextTrampoline = BuildServerNameTrampoline(0x0040232B, 9);
+		if (g_SetTextTrampoline)
+			JMP_NEAR(0x0040232B, HookNaked::NKD_SetTextReplace, 4);
+	}
+
+	if (!g_TextCacheTrampoline)
+	{
+		g_TextCacheTrampoline = BuildServerNameTrampoline(0x0042231F, 9);
+		if (g_TextCacheTrampoline)
+			JMP_NEAR(0x0042231F, HookNaked::NKD_TextCacheReplace, 4);
+	}
+}
 
 bool HookNaked::Start()
 {
@@ -12,7 +99,15 @@ bool HookNaked::Start()
 		WYD.SetHook(eHookType::JGE, 0x004252D6, WYD.GetPtr(&HookNaked::NKD_ClientReceiver), 0);
 		WYD.SetHook(eHookType::JMP, 0x00425887, WYD.GetPtr(&HookNaked::NKD_ClientSended), 0);
 
-		strcpy((char*)0x622CDA, "  WyD Project");
+		/* create-char name check hotfix */
+		const BYTE createCharNamePatch[] = { 0x8B, 0x04, 0x24, 0x90, 0x90 };
+		memcpy((void*)0x004AA621, createCharNamePatch, sizeof(createCharNamePatch));
+		WYD.SetValue<BYTE>(0x004AA655, 0xEB);
+		FlushInstructionCache(GetCurrentProcess(), (LPCVOID)0x004AA621, sizeof(createCharNamePatch));
+		FlushInstructionCache(GetCurrentProcess(), (LPCVOID)0x004AA655, 1);
+
+		strcpy((char*)0x622CDA, "  Wyd Kingdom");
+		InstallServerNameTextHooks();
 
 		HookMgr::instance().SetValue(0x0054A062 + 6, 640);  HookMgr::instance().SetValue(0x0054A06C + 6, 480); HookMgr::instance().SetValue(0x0054A076 + 6, 32);
 		HookMgr::instance().SetValue(0x0054A080 + 6, 800); HookMgr::instance().SetValue(0x0054A08A + 6, 600); HookMgr::instance().SetValue(0x0054A094 + 6, 32);
@@ -65,8 +160,8 @@ bool HookNaked::Start()
 		//Novas Composições
 		WYD.SetHook(eHookType::JMP, 0x498ACD, WYD.GetPtr(&HookNaked::NKD_NewNPCComp));
 
-		WYD.SetValue(0x043b2f5 + 1, WYD.GetPtr("http://wydtnw.com.br/img_guilds/"));/*Altera endereço das img das guildas*/
-		WYD.SetValue(0x043b111 + 1, WYD.GetPtr("http://wydtnw.com.br/img_guilds/"));/*Altera endereço das img das guildas*/
+		WYD.SetValue(0x043b2f5 + 1, WYD.GetPtr("https://api.wydkingdom.com.br/guildmarks/"));/*Altera endereço das img das guildas*/
+		WYD.SetValue(0x043b111 + 1, WYD.GetPtr("https://api.wydkingdom.com.br/guildmarks/"));/*Altera endereço das img das guildas*/
 
 		/* Hook On - Client Speak Message */
 		WYD.SetHook(eHookType::JMP, 0x004A0164, WYD.GetPtr(&HookNaked::NKD_SpeakChatColor), 0);
@@ -137,7 +232,7 @@ bool HookNaked::Start()
 		JMP_NEAR(0x045488D, HookNaked::NKD_KeyPress_NewButton, 1);
 
 		//MainLoop /*by SeiTbN*/
-		//JMP_NEAR(0x0040CF4E, GameInterface::NKD_MainLoop);
+		JMP_NEAR(0x0040CF4E, GameInterface::NKD_MainLoop);
 		//JMP_NEAR(0x00477b95, NKD_UpdateResources, 1);
 
 		/*by SeiTbN*/
@@ -979,6 +1074,45 @@ __declspec(naked) void HookNaked::NKD_ChangeTabColor()
 	}
 }
 
+__declspec(naked) void HookNaked::NKD_SetTextReplace()
+{
+	__asm
+	{
+		PUSHFD
+		PUSHAD
+
+		MOV EAX, DWORD PTR SS : [ESP + 40]
+		PUSH EAX
+		CALL ReplaceServerNameText
+		ADD ESP, 04h
+		MOV DWORD PTR SS : [ESP + 40], EAX
+
+		POPAD
+		POPFD
+
+		JMP DWORD PTR DS : [g_SetTextTrampoline]
+	}
+}
+
+__declspec(naked) void HookNaked::NKD_TextCacheReplace()
+{
+	__asm
+	{
+		PUSHFD
+		PUSHAD
+
+		MOV EAX, DWORD PTR SS : [ESP + 40]
+		PUSH EAX
+		CALL ReplaceServerNameText
+		ADD ESP, 04h
+		MOV DWORD PTR SS : [ESP + 40], EAX
+
+		POPAD
+		POPFD
+
+		JMP DWORD PTR DS : [g_TextCacheTrampoline]
+	}
+}
 __declspec(naked) void HookNaked::NKD_ItemPrice_FormatDecimal_03()
 {
 	__asm

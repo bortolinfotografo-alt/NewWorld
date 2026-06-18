@@ -21,6 +21,7 @@
 #include "CWarTower.h"
 #include "IPControl.h"
 #include "Functions.h"
+#include "wMySQL.h"
 
 void ProcessSecTimer()
 {
@@ -120,6 +121,20 @@ lbl_PST1:
 
 	if (SecCounter % 600 == 0) {
 		GerarRecaptcha();
+	}
+
+	// Grava a contagem REAL de players online no banco (lida pela API/site).
+	// Mesma regra do /online: conta todos os pUser em USER_PLAY. A cada 10s.
+	if (SecCounter % 10 == 0) {
+		int onlineNow = 0;
+		for (int i = 0; i < MAX_USER; i++)
+			if (pUser[i].Mode == USER_PLAY)
+				onlineNow++;
+
+		char onlineQuery[160];
+		sprintf_s(onlineQuery, sizeof(onlineQuery),
+			"UPDATE serverconfig SET online_count = %d WHERE id = 1", onlineNow);
+		cSQL::wQuery(onlineQuery);
 	}
 
 	if (BILLING != 0 && BillCounter > 0 && BillServerSocket.Sock == 0)
@@ -1096,6 +1111,25 @@ lbl_PST1:
 		//		
 		//#pragma endregion
 
+		// ===== Double XP automatico de fim de semana (sab+dom) =====
+		// Liga sabado 00:00, desliga segunda 00:00. Re-liga sozinho se reiniciar no FDS.
+		// Dias de semana ficam livres para liga/desliga manual (/gm +set double).
+		{
+			bool fimDeSemana = (when.tm_wday == 6 || when.tm_wday == 0);
+			if (fimDeSemana && DOUBLEMODE == 0)
+			{
+				DOUBLEMODE = 1;
+				DrawConfig(TRUE);
+				SendNotice("Evento de Fim de Semana: Double XP ATIVADO!");
+			}
+			if (when.tm_wday == 1 && when.tm_hour == 0 && when.tm_min == 0 && DOUBLEMODE == 1)
+			{
+				DOUBLEMODE = 0;
+				DrawConfig(TRUE);
+				SendNotice("Double XP de fim de semana encerrado.");
+			}
+		}
+
 				//portão infernal
 		if ((when.tm_min == 25 || when.tm_min == 55) && when.tm_sec >= 0 && when.tm_sec <= 2)
 		{
@@ -1107,9 +1141,12 @@ lbl_PST1:
 
 
 #pragma region Kefra BOSS Initialize
-		if ((when.tm_wday == 2 && when.tm_hour == 19 && when.tm_min == 0) && when.tm_sec >= 0 && when.tm_sec <= 2 && KefraLive)
+		static int g_KefraLastSpawnYday = -1;
+		if (when.tm_wday == 2 && when.tm_hour == 19 && when.tm_min == 0 && g_KefraLastSpawnYday != when.tm_yday)
 		{
+			g_KefraLastSpawnYday = when.tm_yday;
 			KefraLive = 0;
+			SendNotice("O Boss Kefra apareceu! (Terca-feira 19h)");
 
 			//Kefra
 			GenerateMob(KEFRA_BOSS, 0, 0);
@@ -1161,7 +1198,7 @@ lbl_PST1:
 				/*Noatun*/
 				SendClientSignalParmCoord(i, ESCENE_FIELD, _MSG_StartTime, pMob[i].CheckLojinha, 1039, 1704, 1075, 1754);
 
-				if (pUser[i].TradeMode == 1 && Limitadordelojinha(pUser[i].MacAddress) > 1)
+				if (IsAutoTradeActive(i) && Limitadordelojinha(pUser[i].MacAddress) > 1)
 				{
 					SendClientMessage(i, "Limite de [01] lojinha por máquina.");
 					RemoveTrade(i);
@@ -1178,7 +1215,7 @@ lbl_PST1:
 					if (!pUser[z].cSock.Sock)
 						continue;
 
-					if (pUser[z].TradeMode == 1)
+					if (IsAutoTradeActive(z))
 					{
 						if (pUser[z].IP == pUser[i].IP)
 							Connections++;
@@ -1190,7 +1227,7 @@ lbl_PST1:
 					return;
 				}*/
 				////////////////////////////////////////////////
-				if (pUser[i].TradeMode == 1 && pMob[i].CheckLojinha <= 0)
+				if (IsAutoTradeActive(i) && pMob[i].CheckLojinha <= 0)
 				{
 					pUser[i].Honra += 1;						
 
@@ -1208,7 +1245,7 @@ lbl_PST1:
 							SendItemagrupar(i, item.sIndex);
 
 					}*/
-					pMob[i].CheckLojinha = 600;//600 = 10 minutos
+					pMob[i].CheckLojinha = 1800;//1800 = 30 minutos
 					
 					SendClientMessage(i, "Você Recebeu sua recompensa");
 					SendEtc(i);
@@ -3546,7 +3583,7 @@ void ProcessMinTimer()
 				if (pUser[i].Mode == USER_EMPTY || pUser[i].cSock.Sock == 0)
 					continue;
 
-				if (pUser[i].TradeMode == 1)
+				if (IsAutoTradeActive(i))
 					RemoveTrade(i);
 			}
 

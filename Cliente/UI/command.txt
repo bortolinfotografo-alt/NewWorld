@@ -1,5 +1,31 @@
 FFFFFF
 FFFFFF Comandos especiais
+FFFFFF Comandos principais
+FFFFAA /novato
+AAFFAA Primeiro comando recomendado. Mostra o aviso da recompensa inicial.
+FFFFAA /online
+AAFFAA Mostra a quantidade de jogadores online.
+FFFFAA /saldo
+AAFFAA Mostra honra e fama do personagem.
+FFFFAA /filtro
+AAFFAA Liga ou desliga o filtro de drop, quando estiver usando fada/vale permitido.
+FFFFAA /limpar
+AAFFAA Remove todos os itens salvos no filtro de drop.
+FFFFAA /grupo
+AAFFAA Gera uma senha para permitir entrada no grupo.
+FFFFAA /entrar [nick] [senha]
+AAFFAA Entra no grupo informado usando a senha do lider.
+FFFFAA /sair
+AAFFAA Sai da guilda atual.
+FFFFAA /transferir [nick]
+AAFFAA Transfere a lideranca da guilda para outro membro conectado.
+FFFFAA /closeloja
+AAFFAA Fecha a lojinha aberta do personagem.
+FFFFAA /tab [texto]
+AAFFAA Altera o titulo exibido acima do personagem.
+FFFFAA /macropergaon /macropergaoff /pergastatus
+AAFFAA Controla a macro do Pergaminho da Agua no client.
+FFFFAA
 FFFFAA effects
 AAFFAA Remove os efeitos antigos do jogo garantido uma melhor
 AAFFAA jogabilidade.

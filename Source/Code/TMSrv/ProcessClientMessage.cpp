@@ -36,6 +36,33 @@
 #include "SendFunc.h"
 #include "Functions.h"
 
+DWORD gAutoTradeNativeUnlockTick[MAX_USER];
+
+static const int AUTOTRADE_PREVIEW_CLOSE_TICK = 0x4C4F4A41;
+static const DWORD AUTOTRADE_NATIVE_UNLOCK_IGNORE_MS = 15000;
+
+static bool ShouldIgnoreAutoTradeNativeClose(int conn, MSG_STANDARD* std, bool allowPreviewClose)
+{
+	if (conn <= 0 || conn >= MAX_USER)
+		return false;
+
+	if (!IsAutoTradeActive(conn) || gAutoTradeNativeUnlockTick[conn] == 0)
+		return false;
+
+	if (allowPreviewClose && std && std->ClientTick == AUTOTRADE_PREVIEW_CLOSE_TICK)
+	{
+		gAutoTradeNativeUnlockTick[conn] = 0;
+		return false;
+	}
+
+	DWORD elapsed = GetTickCount() - gAutoTradeNativeUnlockTick[conn];
+	if (elapsed < AUTOTRADE_NATIVE_UNLOCK_IGNORE_MS)
+		return true;
+
+	gAutoTradeNativeUnlockTick[conn] = 0;
+	return false;
+}
+
 void  ProcessClientMessage(int conn, char *pMsg, BOOL isServer)
 {
 	MSG_STANDARD *std = (MSG_STANDARD *)pMsg;
@@ -353,7 +380,19 @@ void  ProcessClientMessage(int conn, char *pMsg, BOOL isServer)
 		break;
 
 	case _MSG_QuitTrade: 
+		if (ShouldIgnoreAutoTradeNativeClose(conn, std, false))
+			break;
+
+		gAutoTradeNativeUnlockTick[conn] = 0;
 		Exec_MSG_QuitTrade(conn, pMsg);
+		break;
+
+	case _MSG_CloseShop:
+		if (ShouldIgnoreAutoTradeNativeClose(conn, std, true))
+			break;
+
+		gAutoTradeNativeUnlockTick[conn] = 0;
+		RemoveTrade(conn);
 		break;
 
 	case _MSG_UseItem:

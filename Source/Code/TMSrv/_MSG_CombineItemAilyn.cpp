@@ -154,6 +154,8 @@ void Exec_MSG_CombineItemAilyn(int conn, char* pMsg)  //ailyn
 
 		BASE_SetItemSanc(&pMob[conn].MOB.Carry[ipos1], 10, m->Item[3].sIndex - 2441);
 
+			SendNotice(strFmt("> > > %s compos %s +10! < < <", pMob[conn].MOB.MobName, g_pItemList[pMob[conn].MOB.Carry[ipos1].sIndex].Name));
+
 		memset(&pMob[conn].MOB.Carry[ipos2], 0, sizeof(STRUCT_ITEM));
 		SendItem(conn, ITEM_PLACE_CARRY, ipos2, &pMob[conn].MOB.Carry[ipos2]);
 

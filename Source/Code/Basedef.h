@@ -197,6 +197,7 @@
 
 #define		MAX_LEVEL				399
 #define		MAX_CLEVEL				399 // 199  //PARA TRAVAR LEVEL
+#define		MAX_CLASSIC_CLEVEL		199
 
 #define		MAX_CLASSMASTER			4
 
@@ -2731,6 +2732,7 @@ struct		  MSG_SetHpDam
 
 
 const short  _MSG_Exp_Msg_Panel_ = 0x5000;
+const short  _MSG_AutoTradePreview = 0x5002;
 struct		  MSG_Exp_Msg_Panel_
 {
 	_MSG;

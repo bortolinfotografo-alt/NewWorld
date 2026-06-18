@@ -82,6 +82,9 @@ public:
 	void SendGuildInfo			(int srv, int Guild);
 	int  GetEncPassword			(int idx, int *Enc);
 	void SetEncPassword			(int idx, int newsrv, int *Enc, int Unk);
+
+private:
+	int  DBWriteAccountInternal (STRUCT_ACCOUNTFILE *account, bool refreshPassword);
 };
 
 extern STRUCT_GUILDINFO GuildInfo[65536];

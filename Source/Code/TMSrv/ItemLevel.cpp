@@ -153,8 +153,18 @@ void ItemLevel(int conn, char* pMsg)
 	}
 	if (pUser[conn].chave1 == 2 && pMob[conn].MOB.BaseScore.Level >= 113)
 	{
-		if (m->Item != 2373 && m->Item != 2368)
+		int rewardItem = m->Item;
+
+		if (rewardItem == 2368)
+			rewardItem = 2366;
+		else if (rewardItem == 2373)
+			rewardItem = 2371;
+
+		if (rewardItem != 2366 && rewardItem != 2371)
+		{
+			SendClientMessage(conn, "Recompensa invalida. Atualize o launcher e tente novamente.");
 			return;
+		}
 
 		STRUCT_ITEM Item1, Item2;
 		memset(&Item1, 0, sizeof(STRUCT_ITEM));
@@ -173,8 +183,8 @@ void ItemLevel(int conn, char* pMsg)
 			return;
 		}
 
-		//level b
-		Item1.sIndex = m->Item;
+		// Cavalo s/Sela escolhido no painel de recompensa.
+		Item1.sIndex = rewardItem;
 		Item1.stEffect[0].cEffect = 10;
 		Item1.stEffect[0].cValue = 10;
 		Item1.stEffect[1].cEffect = 10;
@@ -191,13 +201,11 @@ void ItemLevel(int conn, char* pMsg)
 	}
 	if (pUser[conn].chave1 == 3 && pMob[conn].MOB.BaseScore.Level >= 124)
 	{
-		if (m->Item < 1207 && m->Item > 1654)
+		if (m->Item < 1207 || m->Item > 1654)
 			return;
 
 		STRUCT_ITEM Item[5];
-		memset(&Item[0], 0, sizeof(STRUCT_ITEM));
-		memset(&Item[1], 0, sizeof(STRUCT_ITEM));
-		memset(&Item[2], 0, sizeof(STRUCT_ITEM));
+		memset(&Item, 0, sizeof(Item));
 		memset(&Item[3], 0, sizeof(STRUCT_ITEM));
 		memset(&Item[4], 0, sizeof(STRUCT_ITEM));
 
@@ -401,15 +409,17 @@ void ItemLevel(int conn, char* pMsg)
 		}
 		pUser[conn].chave1 = 5;
 		SendEtc(conn);
+		SendCarry(conn);
 		SaveUser(conn, 0);
 		return;
 	}
 	if (pUser[conn].chave1 == 5 && pMob[conn].MOB.BaseScore.Level >= 255)
 	{
+		if (m->Item != 3566 && m->Item != 3551 && m->Item != 3582 && m->Item != 3556)
+			return;
+
 		STRUCT_ITEM Item[5];
-		memset(&Item[0], 0, sizeof(STRUCT_ITEM));
-		memset(&Item[1], 0, sizeof(STRUCT_ITEM));
-		memset(&Item[2], 0, sizeof(STRUCT_ITEM));
+		memset(&Item, 0, sizeof(Item));
 
 		int x = 0;
 		int invfree = 0;
@@ -518,6 +528,7 @@ void ItemLevel(int conn, char* pMsg)
 		}
 		pUser[conn].chave1 = 6;
 		SendEtc(conn);
+		SendCarry(conn);
 		SaveUser(conn, 0);
 		return;
 	}

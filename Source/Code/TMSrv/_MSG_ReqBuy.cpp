@@ -26,6 +26,8 @@ void Exec_MSG_ReqBuy(int conn, char *pMsg)
 	}
 
 	int targetID = m->TargetID;
+	int ownerID = GetAutoTradeOwner(targetID);
+	int shopID = GetAutoTradeDisplayMob(ownerID);
 	int itemPrice = m->Price;
 	int itemTax = m->Tax;
 	int itemPos = m->Pos;
@@ -39,7 +41,7 @@ void Exec_MSG_ReqBuy(int conn, char *pMsg)
 	if (itemTax < 0)
 		return;
 
-	if (targetID <= 0 || targetID >= MAX_USER)
+	if (ownerID <= 0 || ownerID >= MAX_USER || shopID <= 0 || shopID >= MAX_MOB)
 	{
 		RemoveTrade(conn);
 		return;
@@ -51,7 +53,7 @@ void Exec_MSG_ReqBuy(int conn, char *pMsg)
 		return;
 	}
 
-	if (targetID <= 0 || targetID >= MAX_USER)
+	if (ownerID <= 0 || ownerID >= MAX_USER || shopID <= 0 || shopID >= MAX_MOB)
 	{
 		RemoveTrade(conn);
 		return;
@@ -63,29 +65,32 @@ void Exec_MSG_ReqBuy(int conn, char *pMsg)
 		return;
 	}
 
-	if (pMob[conn].TargetX >= pMob[targetID].TargetX - VIEWGRIDX && pMob[conn].TargetX <= pMob[targetID].TargetX + VIEWGRIDX && pMob[conn].TargetY >= pMob[targetID].TargetY - VIEWGRIDY && pMob[conn].TargetY <= pMob[targetID].TargetY + VIEWGRIDY)
+	if (ownerID == conn)
+		return;
+
+	if (pMob[conn].TargetX >= pMob[shopID].TargetX - VIEWGRIDX && pMob[conn].TargetX <= pMob[shopID].TargetX + VIEWGRIDX && pMob[conn].TargetY >= pMob[shopID].TargetY - VIEWGRIDY && pMob[conn].TargetY <= pMob[shopID].TargetY + VIEWGRIDY)
 	{
 		if (itemPos < 0 || itemPos >= MAX_AUTOTRADE)
 			return;
 
-		int StorageSlot = pUser[targetID].AutoTrade.CarryPos[itemPos];
+		int StorageSlot = pUser[ownerID].AutoTrade.CarryPos[itemPos];
 
 		if (StorageSlot < 0 || StorageSlot >= MAX_CARGO)
 			return;
 
-		if (itemTax != pUser[targetID].AutoTrade.Tax)
+		if (itemTax != pUser[ownerID].AutoTrade.Tax)
 			return;
 
-		if (itemPrice != pUser[targetID].AutoTrade.Coin[itemPos])
+		if (itemPrice != pUser[ownerID].AutoTrade.Coin[itemPos])
 			return;
 
-		if (memcmp(&m->item, &pUser[targetID].AutoTrade.Item[itemPos], sizeof(STRUCT_ITEM)))
+		if (memcmp(&m->item, &pUser[ownerID].AutoTrade.Item[itemPos], sizeof(STRUCT_ITEM)))
 		{
 			RemoveTrade(conn);
 			return;
 		}
 
-		if (memcmp(&pUser[targetID].Cargo[StorageSlot], &pUser[targetID].AutoTrade.Item[itemPos], sizeof(STRUCT_ITEM)))
+		if (memcmp(&pUser[ownerID].Cargo[StorageSlot], &pUser[ownerID].AutoTrade.Item[itemPos], sizeof(STRUCT_ITEM)))
 		{
 			RemoveTrade(conn);
 			return;
@@ -98,7 +103,7 @@ void Exec_MSG_ReqBuy(int conn, char *pMsg)
 			return;
 		}
 
-		unsigned int xcoin = pUser[targetID].Coin + itemPrice;
+		unsigned int xcoin = pUser[ownerID].Coin + itemPrice;
 
 		if (xcoin > 2000000000)
 		{
@@ -122,7 +127,7 @@ void Exec_MSG_ReqBuy(int conn, char *pMsg)
 			return;
 		}
 
-		int target_village = BASE_GetVillage(pMob[targetID].TargetX, pMob[targetID].TargetY);
+		int target_village = BASE_GetVillage(pMob[shopID].TargetX, pMob[shopID].TargetY);
 
 		if (target_village < 0 || target_village >= 5)
 		{
@@ -130,13 +135,13 @@ void Exec_MSG_ReqBuy(int conn, char *pMsg)
 			return;
 		}
 
-		memcpy(&pMob[conn].MOB.Carry[i], &pUser[targetID].Cargo[StorageSlot], sizeof(STRUCT_ITEM));
+		memcpy(&pMob[conn].MOB.Carry[i], &pUser[ownerID].Cargo[StorageSlot], sizeof(STRUCT_ITEM));
 		SendItem(conn, ITEM_PLACE_CARRY, i, &pMob[conn].MOB.Carry[i]);
 
 		char tmplog[2048];
 		BASE_GetItemCode(&m->item, tmplog);
 
-		sprintf_s(temp, "autotrade_buy,target_name:%s price:%d item:%s", pUser[targetID].AccountName, itemPrice, tmplog);
+		sprintf_s(temp, "autotrade_buy,target_name:%s price:%d item:%s", pUser[ownerID].AccountName, itemPrice, tmplog);
 		ItemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP, temp);
 
 		int imposto = 0;
@@ -148,32 +153,53 @@ void Exec_MSG_ReqBuy(int conn, char *pMsg)
 			price_end = itemPrice - imposto;
 		}
 
-		pUser[targetID].AutoTrade.CarryPos[itemPos] = -1;
+		pUser[ownerID].AutoTrade.CarryPos[itemPos] = -1;
 
-		memset(&pUser[targetID].AutoTrade.Item[itemPos], 0, sizeof(STRUCT_ITEM));
+		memset(&pUser[ownerID].AutoTrade.Item[itemPos], 0, sizeof(STRUCT_ITEM));
 
-		pUser[targetID].AutoTrade.Coin[itemPos] = 0;
+		pUser[ownerID].AutoTrade.Coin[itemPos] = 0;
 
-		memset(&pUser[targetID].Cargo[StorageSlot], 0, sizeof(STRUCT_ITEM));
+		memset(&pUser[ownerID].Cargo[StorageSlot], 0, sizeof(STRUCT_ITEM));
 
-		SendItem(targetID, ITEM_PLACE_CARGO, StorageSlot, &pUser[targetID].Cargo[StorageSlot]);
+		SendItem(ownerID, ITEM_PLACE_CARGO, StorageSlot, &pUser[ownerID].Cargo[StorageSlot]);
 
 		pMob[conn].MOB.Coin -= itemPrice;
 
-		if (pUser[targetID].Coin < 2000000000)
-			pUser[targetID].Coin += price_end;
+		if (pUser[ownerID].Coin < 2000000000)
+			pUser[ownerID].Coin += price_end;
 
 		SendEtc(conn);
-		SendCargoCoin(targetID);
-		SaveUser(targetID, 1);
+		SendCargoCoin(ownerID);
+		SaveUser(ownerID, 1);
+
+		const char* soldItemName = "Item";
+		if (m->item.sIndex > 0 && m->item.sIndex < MAX_ITEMLIST)
+			soldItemName = g_pItemList[m->item.sIndex].Name;
+
+		char soldMessage[128];
+		snprintf(soldMessage, sizeof(soldMessage), "Lojinha: %s comprou [%s] por %d gold.",
+			pMob[conn].MOB.MobName,
+			soldItemName,
+			itemPrice);
+		SendClientMessage(ownerID, soldMessage);
+
+		if (imposto > 0)
+		{
+			char taxMessage[128];
+			snprintf(taxMessage, sizeof(taxMessage), "Lojinha: imposto %d%% = %d. Voce recebeu %d gold.",
+				itemTax,
+				imposto,
+				price_end);
+			SendClientMessage(ownerID, taxMessage);
+		}
 
 		// DESCOMENTAR AQUI PARA QUANDO ALGUEM COMPRAR ALGUMA ITEM NA LOJA A LOJA FECHAR PINHEIRO
-		//if (pUser[targetID].AutoTrade.Item[0].sIndex == 0 && pUser[targetID].AutoTrade.Item[1].sIndex == 0 &&
-		//	pUser[targetID].AutoTrade.Item[2].sIndex == 0 && pUser[targetID].AutoTrade.Item[3].sIndex == 0 &&
-		//	pUser[targetID].AutoTrade.Item[4].sIndex == 0 && pUser[targetID].AutoTrade.Item[5].sIndex == 0 &&
-		//	pUser[targetID].AutoTrade.Item[6].sIndex == 0 && pUser[targetID].AutoTrade.Item[7].sIndex == 0 &&
-		//	pUser[targetID].AutoTrade.Item[8].sIndex == 0 && pUser[targetID].AutoTrade.Item[9].sIndex == 0 &&
-		//	pUser[targetID].AutoTrade.Item[10].sIndex == 0) 
+		//if (pUser[ownerID].AutoTrade.Item[0].sIndex == 0 && pUser[ownerID].AutoTrade.Item[1].sIndex == 0 &&
+		//	pUser[ownerID].AutoTrade.Item[2].sIndex == 0 && pUser[ownerID].AutoTrade.Item[3].sIndex == 0 &&
+		//	pUser[ownerID].AutoTrade.Item[4].sIndex == 0 && pUser[ownerID].AutoTrade.Item[5].sIndex == 0 &&
+		//	pUser[ownerID].AutoTrade.Item[6].sIndex == 0 && pUser[ownerID].AutoTrade.Item[7].sIndex == 0 &&
+		//	pUser[ownerID].AutoTrade.Item[8].sIndex == 0 && pUser[ownerID].AutoTrade.Item[9].sIndex == 0 &&
+		//	pUser[ownerID].AutoTrade.Item[10].sIndex == 0) 
 		//{ 
 		//	RemoveTrade(targetID);
 		//	RemoveTrade(conn);
@@ -201,12 +227,20 @@ void Exec_MSG_ReqBuy(int conn, char *pMsg)
 
 		sm_is.Type = _MSG_ItemSold;
 		sm_is.ID = ESCENE_FIELD;
-		sm_is.Parm1 = targetID;
+		sm_is.Parm1 = shopID;
 		sm_is.Parm2 = itemPos;
 		sm_is.Size = sizeof(MSG_STANDARDPARM2);
 
-		GridMulticast(pMob[targetID].TargetX, pMob[targetID].TargetY, (MSG_STANDARD*)&sm_is, 0);
-		SendClientMessage(targetID, g_pMessageStringTable[_NN_ItemSold]);
+		GridMulticast(pMob[shopID].TargetX, pMob[shopID].TargetY, (MSG_STANDARD*)&sm_is, 0);
+
+		if (pMob[ownerID].TargetX < pMob[shopID].TargetX - VIEWGRIDX || pMob[ownerID].TargetX > pMob[shopID].TargetX + VIEWGRIDX ||
+			pMob[ownerID].TargetY < pMob[shopID].TargetY - VIEWGRIDY || pMob[ownerID].TargetY > pMob[shopID].TargetY + VIEWGRIDY)
+		{
+			if (!pUser[ownerID].cSock.AddMessage((char*)&sm_is, sizeof(MSG_STANDARDPARM2)))
+				CloseUser(ownerID);
+		}
+
+		SendClientMessage(ownerID, g_pMessageStringTable[_NN_ItemSold]);
 	}
 
 	else

@@ -17,7 +17,7 @@ void ExecItemLevel()
 		PainelJephi->IsVisible = true;
 
 		auto Text = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(117930);
-		Text->setConstString("Escolha um dos itens para receber");
+		Text->setConstString("Escolha seu Cavalo s/Sela N ou B");
 		Text->setTextColor(TNColor::CornBlue);
 
 		STRUCT_ITEM item[5];
@@ -115,7 +115,7 @@ void ExecItemLevel()
 		Text->setTextColor(TNColor::CornBlue);
 
 		STRUCT_ITEM item[5];
-		int Index[5] = { 2373, 2368, 0, 0, 0 };		
+		int Index[5] = { 2366, 2371, 0, 0, 0 };
 
 		for (int i = 0; i < 5; i++) {
 			

@@ -1,7 +1,10 @@
 #include "main.h"
 //bagu ta bem loco
 //STRUCT_QUESTDIARIA QuestDay;
-STRUCT_CLIENTPAC g_pSendClientPac; 
+STRUCT_CLIENTPAC g_pSendClientPac;
+
+// Macro do Pergaminho da Agua (ver MacroPergaminhoAgua.cpp)
+extern void StartMacroPergaAgua();
 int __stdcall DllMain(HINSTANCE hInstDLL, DWORD catchReason, LPVOID lpResrv)
 {
 	__try
@@ -12,7 +15,7 @@ int __stdcall DllMain(HINSTANCE hInstDLL, DWORD catchReason, LPVOID lpResrv)
 		{
 			DWORD dwOldProtectFlag_text;
 			VirtualProtect((int*)0x0401000, 0x5F0FFF - 0x0401000, 0x40, &dwOldProtectFlag_text);
-			// se remover o comentario de CreateConsole irá ativar o console para auxliar a debug.
+			// se remover o comentario de CreateConsole irï¿½ ativar o console para auxliar a debug.
 			// // CMD CONSOLE DO CLIENT
 			//CreateConsole("Debug"); // COMENTAR AQUI TIRAR JANELA QUE ABRE COM CLIENTE
 			Dll_Inject();
@@ -21,7 +24,10 @@ int __stdcall DllMain(HINSTANCE hInstDLL, DWORD catchReason, LPVOID lpResrv)
 
 			HookNaked::Start();
 
-			/* Tira os check-sum para manipulação de ponteiros */
+			// Inicia o macro do Pergaminho da Agua (/macropergaon)
+			StartMacroPergaAgua();
+
+			/* Tira os check-sum para manipulaï¿½ï¿½o de ponteiros */
 			/* Remove - Client Is Bad Ptr */
 			JMP_NEAR(0x005D33FD, (INT32*)0x005D3418);
 

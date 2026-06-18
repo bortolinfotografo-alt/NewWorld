@@ -2157,14 +2157,17 @@ void Log(char* str1, char* str2, unsigned int ip)
 
 	if (ip != 0)
 		//sprintf(LogTemp, "[%02d/%02d/%04d][%02d:%02d:%02d] IP: %d.%d.%d.%d.%d", when.tm_mday, when.tm_mon + 1, when.tm_year + 1900, when.tm_hour, when.tm_min, when.tm_sec, cIP[0], cIP[1], cIP[2], cIP[3], cIP[4]);
-		sprintf(LogTemp, "[%02d/%02d/%04d][%02d:%02d:%02d] IP: %d.%d.%d.%d.%d | %s %s", when.tm_mday, when.tm_mon + 1, when.tm_year + 1900, when.tm_hour, when.tm_min, when.tm_sec, cIP[0], cIP[1], cIP[2], cIP[3], str2, str1);
+		_snprintf_s(LogTemp, sizeof(LogTemp), _TRUNCATE, "[%02d/%02d/%04d][%02d:%02d:%02d] IP: %d.%d.%d.%d | %s %s", when.tm_mday, when.tm_mon + 1, when.tm_year + 1900, when.tm_hour, when.tm_min, when.tm_sec, cIP[0], cIP[1], cIP[2], cIP[3], str2, str1);
 	else
-		sprintf(LogTemp, "[%02d/%02d/%04d][%02d:%02d:%02d]  | %s %s", when.tm_mday, when.tm_mon + 1, when.tm_year + 1900, when.tm_hour, when.tm_min, when.tm_sec, str2, str1);
+		_snprintf_s(LogTemp, sizeof(LogTemp), _TRUNCATE, "[%02d/%02d/%04d][%02d:%02d:%02d]  | %s %s", when.tm_mday, when.tm_mon + 1, when.tm_year + 1900, when.tm_hour, when.tm_min, when.tm_sec, str2, str1);
 
 	//sprintf(LogTemp, "\n%s %s %s\n", LogTemp, str2, str1);
 
 	if (fLogFile)
-		fprintf(fLogFile, LogTemp);
+	{
+		fprintf(fLogFile, "%s\n", LogTemp);
+		fflush(fLogFile);
+	}
 
 	SetWindowText(hWndMain, LogTemp);
 }

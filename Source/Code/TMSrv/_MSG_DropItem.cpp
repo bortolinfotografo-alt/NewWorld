@@ -66,6 +66,12 @@ void Exec_MSG_DropItem(int conn, char *pMsg)
 		return;
 	}
 
+	if (m->SourType == ITEM_PLACE_CARGO && IsAutoTradeCargoSlotLocked(conn, m->SourPos))
+	{
+		SendClientMessage(conn, "Item anunciado na loja. Feche a loja para dropar.");
+		return;
+	}
+
 	if (m->GridX >= MAX_GRIDX || m->GridY >= MAX_GRIDY)
 	{
 		sprintf_s(temp, "err,wrong drop pos %d %d", m->GridX, m->GridY);

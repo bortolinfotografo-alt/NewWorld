@@ -1,7 +1,7 @@
 Drop Item Event Settings:
-   evindex 483   evdelete 0   evon 0   evitem 413   evrate 1   evstart 1 24 30000 0
+   evindex 0   evdelete 0   evon 0   evitem 0   evrate 1   evstart 1 24 30000 0
 Etc Event Settings:
-   double 0   deadpoint 1   dungeonevent 0   statsapphire 5    battleroyal 518
+   double 1   deadpoint 0   dungeonevent 1   statsapphire 5    battleroyal 518
 Billing Settings:
    billmode 0   freeexp 35   charselbill 0    potioncount 100   partybonus 50   guildboard 0
 Item Drop Bonus Settings:
@@ -16,15 +16,15 @@ Treasure Settings:
        0                    0                    0                    0                    0    
 0      0     0  0  0  0     0     0  0  0  0     0     0  0  0  0     0     0  0  0  0     0     0  0  0  0   
        0                    0                    0                    0                    0    
-0      0     0  0  0  0     0     0  0  0  0     0     0  0  0  0     0     0  0  0  0     0     0  0  0  0   
+0      0     0  0  0  0     0     0  0  0  0     28257 116 111 95 233     11103 95 49 95 63     0     0  0  0  0   
        0                    0                    0                    0                    0    
 0      0     0  0  0  0     0     0  0  0  0     0     0  0  0  0     0     0  0  0  0     0     0  0  0  0   
        0                    0                    0                    0                    0    
 0      0     0  0  0  0     0     0  0  0  0     0     0  0  0  0     0     0  0  0  0     0     0  0  0  0   
+       30067                29804                25697                24431                24553
+50     0     0  0  0  0     0     0  0  0  0     0    114 101 115 117     25697 111 95 233 95     0     0  0  0  0   
        0                    0                    0                    0                    0    
-0      0     0  0  0  0     0     0  0  0  0     0     0  0  0  0     0     0  0  0  0     0     0  0  0  0   
-       0                    0                    0                    0                    0    
-0      0     0  0  0  0     0     0  0  0  0     0     0  0  0  0     0     0  0  0  0     0     0  0  0  0   
-       0                    0                    0                    0                    0    
+25970   30067 108 116 97 100     24553 53  0  0  0     0     0  0  0  0     0     0  0  0  0     30067 108 116 97 100   
+       24553                49                   0                    0                    0    
 Etc Settings:
-   partydif 400   kefrastatus 1   GTorreHour 21    RVRHour 0    DropItem 0   BRHour 19   maxNightmare 3   PotionDelay 350   HardCore 0
+   partydif 400   kefrastatus 1   GTorreHour 21    RVRHour 22    DropItem 0   BRHour 19   maxNightmare 3   PotionDelay 350   HardCore 0

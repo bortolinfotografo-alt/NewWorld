@@ -5466,8 +5466,7 @@ Cav. Elfo Negro,
 Item: 2309:Ovo_de_Cavalo_Equip_N Mobs que dropam:1
 Lobo_Polar, 
 
-Item: 2310:Ovo_de_Andaluz_N Mobs que dropam:1
-Homem_Kalintz, 
+Item: 2310: Mobs que dropam:0
 
 Item: 2311:Ovo_de_Cavalo_s/Sela_B Mobs que dropam:0
 
@@ -5478,26 +5477,23 @@ Elfo_Negro_Abj,
 
 Item: 2314:Ovo_de_Cavalo_Equip_B Mobs que dropam:0
 
-Item: 2315:Ovo_de_Andaluz_B Mobs que dropam:1
-Mulher_Kalintz, 
+Item: 2315: Mobs que dropam:0
 
-Item: 2316:Ovo_de_Fenrir Mobs que dropam:2
-Ladrao_Tauron, Taron_Assassino, 
+Item: 2316:Ovo_de_Fenrir Mobs que dropam:0
 
 Item: 2317:Ovo_de_Dragão Mobs que dropam:0
 
-Item: 2318:Ovo_de_Fenrir_das_Sombras Mobs que dropam:1
-Adamant_Tauron, 
+Item: 2318:Ovo_de_Fenrir_das_Sombras Mobs que dropam:0
 
 Item: 2319:Ovo_de_Tigre_de_Fogo Mobs que dropam:0
 
 Item: 2320:Ovo_de_Dragão_Vermelho Mobs que dropam:0
 
-Item: 2321:Ovo_de_Unicornio Mobs que dropam:0
+Item: 2321: Mobs que dropam:0
 
-Item: 2322:Ovo_de_Pegasus Mobs que dropam:0
+Item: 2322: Mobs que dropam:0
 
-Item: 2323:Ovo_de_Unisus Mobs que dropam:0
+Item: 2323: Mobs que dropam:0
 
 Item: 2324:Ovo_de_Grifo Mobs que dropam:0
 
@@ -5682,8 +5678,7 @@ Argos, Argos_Errante,
 Item: 2399:Âmago_de_Cavalo_Equip_N Mobs que dropam:1
 GO!_Honra, 
 
-Item: 2400:Âmago_de_Andaluz_N Mobs que dropam:3
-Chefe Amon Inf, Homem_Kalintz, Seguidor_Treant, 
+Item: 2400: Mobs que dropam:0
 
 Item: 2401:Âmago_de_Ca_s/Sela_B Mobs que dropam:0
 
@@ -5695,30 +5690,23 @@ Argos, Argos_Errante,
 Item: 2404:Âmago_de_Cavalo_Equip_B Mobs que dropam:1
 GO!_Honra, 
 
-Item: 2405:Âmago_de_Andaluz_B Mobs que dropam:3
-Chefe Amon Inf, Mulher_Kalintz, Seguidor_Treant, 
+Item: 2405: Mobs que dropam:0
 
-Item: 2406:Âmago_de_Fenrir Mobs que dropam:3
-GO!_Honra, Ladrao_Tauron, Taron_Assassino, 
+Item: 2406:Âmago_de_Fenrir Mobs que dropam:0
 
 Item: 2407:Âmago_de_Dragão Mobs que dropam:0
 
-Item: 2408:Âmago_de_Fenrir_das_Sombras Mobs que dropam:1
-Adamant_Tauron, 
+Item: 2408:Âmago_de_Fenrir_das_Sombras Mobs que dropam:0
 
 Item: 2409:Âmago_de_Tigre_de_Fogo Mobs que dropam:0
 
 Item: 2410:Âmago_de_Dragão_Verm Mobs que dropam:0
 
-Item: 2411:Âmago_de_Unicórnio Mobs que dropam:9
-Balrog, Chefe Amon Inf, Guer_Amon_Inf, Lugefer__, PerBerserker_, Test, Valquiria, Zakum Inf, 
-Zakum Inf , 
+Item: 2411: Mobs que dropam:0
 
-Item: 2412:Âmago_de_Pégasus Mobs que dropam:6
-Chefe Amon Inf, Guer_Amon_Inf, PerValkyrie , Test, Zakum Inf, Zakum Inf , 
+Item: 2412: Mobs que dropam:0
 
-Item: 2413:Âmago_de_Unisus Mobs que dropam:5
-PreKalintz_H_, PreKalintz_M, Test, Zakum Inf, Zakum Inf , 
+Item: 2413: Mobs que dropam:0
 
 Item: 2414:Âmago_de_Grifo Mobs que dropam:2
 Rei_Carbuncle, Test, 

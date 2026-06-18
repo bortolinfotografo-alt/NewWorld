@@ -1,2 +1,2 @@
 Sapphire 1
-LastCapsule 11
+LastCapsule 0

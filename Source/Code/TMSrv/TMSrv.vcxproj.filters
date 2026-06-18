@@ -98,6 +98,12 @@
     <ClCompile Include="..\Basedef.cpp">
       <Filter>Base\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="BalanceTelemetry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BalanceTestSetup.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\CPSock.cpp">
       <Filter>Base\Source Files</Filter>
     </ClCompile>
@@ -414,6 +420,12 @@
     </ClInclude>
     <ClInclude Include="..\ItemEffect.h">
       <Filter>Base\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BalanceTestSetup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BalanceTelemetry.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CCastleZakum.h">
       <Filter>CCastleZakum</Filter>

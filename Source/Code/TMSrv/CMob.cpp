@@ -303,6 +303,20 @@ int  CMob::StandingByProcessor(void)
 			return rt;
 		}
 
+		// Auto-aggro: a evocacao procura um MOB inimigo por perto e engaja
+		// sozinha (so se ainda estiver perto do dono, pra nao sair correndo).
+		{
+			int enemy = GetMobEnemyForSummon();
+
+			if (enemy)
+			{
+				int distOwner = BASE_GetDistance(TargetX, TargetY, pMob[summoner].TargetX, pMob[summoner].TargetY);
+
+				if (distOwner < 18)
+					return enemy | 0x10000000;
+			}
+		}
+
 		int Distance = BASE_GetDistance(TargetX, TargetY, pMob[summoner].TargetX, pMob[summoner].TargetY);
 		if (Distance >= 13)
 		{
@@ -686,7 +700,9 @@ int CMob::BattleProcessor()
 
 	int BaseInt = MOB.BaseScore.Int;
 
-	if (BaseInt < rand() % 100)
+	// Evocacoes (RouteType 5) ignoram o "gate de Int" para reagir/atacar de
+	// imediato (sem a demora de varios turnos pulados ate o 1o ataque).
+	if (RouteType != 5 && BaseInt < rand() % 100)
 		return 0x010000;
 
 	int BaseDex = MOB.BaseScore.Dex;
@@ -1798,24 +1814,28 @@ int  CMob::CheckGetLevel()
 	int cur = MOB.BaseScore.Level;
 
 	int max_level = 0;
-
-	int IsMortal = MAX_LEVEL;
+	bool useCelestialExpTable = false;
 
 	if (extra.ClassMaster == MORTAL || extra.ClassMaster == ARCH)
 		max_level = MAX_LEVEL;
 
-	else if (extra.ClassMaster == CELESTIAL || extra.ClassMaster == SCELESTIAL || extra.ClassMaster == CELESTIALCS ||
-		extra.ClassMaster == HARDCORE) {
+	else if (extra.ClassMaster == CELESTIAL || extra.ClassMaster == SCELESTIAL || extra.ClassMaster == CELESTIALCS)
+	{
+		max_level = MAX_CLASSIC_CLEVEL;
+		useCelestialExpTable = true;
+	}
+	else if (extra.ClassMaster == HARDCORE)
+	{
 		max_level = MAX_CLEVEL;
-		IsMortal = 199;
+		useCelestialExpTable = true;
 	}
 
 	if (cur >= max_level)
 		return 0;
 
 	long long exp = MOB.Exp;
-	long long curexp = max_level == IsMortal ? g_pNextLevel[cur] : g_pNextLevel_2[cur];
-	long long nextexp = max_level == IsMortal ? g_pNextLevel[cur + 1] : g_pNextLevel_2[cur + 1];
+	long long curexp = useCelestialExpTable ? g_pNextLevel_2[cur] : g_pNextLevel[cur];
+	long long nextexp = useCelestialExpTable ? g_pNextLevel_2[cur + 1] : g_pNextLevel[cur + 1];
 	long long deltaexp = (nextexp - curexp) / 4;
 	long long Segment1 = curexp + deltaexp;
 	long long Segment2 = curexp + (deltaexp * 2);
@@ -2225,6 +2245,65 @@ int CMob::GetEnemyFromView(void)
 	}
 
 	return 0;
+}
+
+// Varredura de auto-aggro para EVOCACOES: procura o MOB inimigo vivo mais
+// proximo (nao mira players nem pets do mesmo dono). Players continuam sendo
+// engajados de forma reativa (quando o dono ataca / e atacado).
+int CMob::GetMobEnemyForSummon(void)
+{
+	int mySummoner = Summoner;
+	int best = 0;
+	int bestDis = 99999;
+	const int radius = 7;
+
+	for (int y = TargetY - radius; y <= TargetY + radius; y++)
+	{
+		if (y < 0 || y >= MAX_GRIDY)
+			continue;
+
+		for (int x = TargetX - radius; x <= TargetX + radius; x++)
+		{
+			if (x < 0 || x >= MAX_GRIDX)
+				continue;
+
+			int tmob = pMobGrid[y][x];
+
+			if (tmob < MAX_USER || tmob >= MAX_MOB)   // ignora players e indices invalidos
+				continue;
+			if (tmob == mySummoner)
+				continue;
+			if (pMob[tmob].Mode == MOB_EMPTY)
+				continue;
+			if (pMob[tmob].MOB.CurrentScore.Hp <= 0)
+				continue;
+			if (pMob[tmob].MOB.Merchant & 1)          // ignora NPC mercante
+				continue;
+			if (pMob[tmob].IsSummon)                   // ignora evocacoes (de qualquer dono)
+				continue;
+			if (pMob[tmob].Summoner == mySummoner)     // reforco: nada do mesmo dono
+				continue;
+
+			// So mira MONSTRO AGRESSIVO: alvo precisa ser hostil ao cla de player
+			// (cla 0). Isso pega mobs de farm/evento (cla 1/5) e EXCLUI NPCs como
+			// o de entrada do evento (cla 0), missao (cla 3), guardas/lojas.
+			int tclan = pMob[tmob].MOB.Clan;
+			if (tclan < 0 || tclan >= 9)
+				continue;
+			if (g_pClanTable[tclan][0] != 0)
+				continue;
+
+			int dis = BASE_GetDistance(TargetX, TargetY, pMob[tmob].TargetX, pMob[tmob].TargetY);
+
+			if (dis < bestDis)
+			{
+				bestDis = dis;
+				best = tmob;
+			}
+		}
+	}
+
+	return best;
 }
 
 void CMob::AddChaosPoints(int points)

@@ -3026,6 +3026,10 @@ void Exec_MSG_Quest(int conn, char* pMsg)
 #pragma region JULIARZAN
 	case JULIARZAN:
 	{
+#if !NIPPLEHEIM_HABILITADO
+		SendSay(npcIndex, "Karden sera habilitado em breve.");
+		break;
+#endif
 
 		if (pMob[conn].MOB.Coin < 50000)
 		{

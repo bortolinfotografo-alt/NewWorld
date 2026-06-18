@@ -3,10 +3,10 @@
 #pragma comment(lib, "libmysql.lib")
 #include "../../Code/DBSRV/singleton.h"
 
-#define HOST "localhost"
+#define HOST "127.0.0.1"
 #define USER "root"
-#define PASS ""
-#define PORT 3306
+#define PASS "123456"
+#define PORT 3307
 #define DB "wydsite"
 
 extern int contador;

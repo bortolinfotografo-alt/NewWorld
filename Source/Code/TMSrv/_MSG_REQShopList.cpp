@@ -17,6 +17,18 @@
 *   Contact at: victor.klafke@ecomp.ufsm.br
 */
 #include "ProcessClientMessage.h"
+#include "Functions.h"
+
+static bool IsRankingNpcTarget(int target)
+{
+	if (target < MAX_USER || target >= MAX_MOB)
+		return false;
+
+	if (strcmp(pMob[target].MOB.MobName, "Ranking") == 0)
+		return true;
+
+	return pMob[target].GenerateIndex == 4991;
+}
 
 void Exec_MSG_OpenDonate(int conn, char* pMsg)
 {
@@ -47,7 +59,7 @@ void Exec_MSG_OpenDonate(int conn, char* pMsg)
 
 		if (isTime < 200)
 		{
-			SendClientMessage(conn, "Aguarde um segundo antes de enviar nova solicitação");
+			SendClientMessage(conn, "Aguarde um segundo antes de enviar nova solicitaï¿½ï¿½o");
 			return;
 		}
 
@@ -152,6 +164,11 @@ void Exec_MSG_REQShopList(int conn, char* pMsg)
 	if (pUser[conn].Ingame.DonateBuyItem <= 0 && target < MAX_USER || target >= MAX_MOB)
 		return;
 
+	if (IsRankingNpcTarget(target)) {
+		sendRanking(conn, 0);
+		return;
+	}
+
 	int view = GetInView(conn, target);
 
 	if (pUser[conn].Ingame.DonateBuyItem <= 0 && view == 0) {
@@ -159,9 +176,28 @@ void Exec_MSG_REQShopList(int conn, char* pMsg)
 		return;
 	}
 
+	// NPC de Ranking: ao clicar, abre o ranking (Top 50 por Level) em vez de loja.
+	if (IsRankingNpcTarget(target)) {
+		sendRanking(conn, 0);
+		return;
+	}
+
 	if (pMob[target].MOB.Merchant == 0) {
 		pUser[conn].Ingame.CanBuy = 0;
 		SendItemList(conn, target, 1);
+		return;
+	}
+	else if (pMob[target].MOB.Merchant == 11) {
+		MSG_STANDARDPARM2 quest;
+		memset(&quest, 0, sizeof(MSG_STANDARDPARM2));
+
+		quest.Size = sizeof(MSG_STANDARDPARM2);
+		quest.Type = _MSG_Quest;
+		quest.ID = conn;
+		quest.Parm1 = target;
+		quest.Parm2 = 1;
+
+		Exec_MSG_Quest(conn, (char*)&quest);
 		return;
 	}
 	else if (pMob[target].MOB.Merchant == 1) {

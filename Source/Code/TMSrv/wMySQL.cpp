@@ -27,7 +27,8 @@ MYSQL* cSQL::wStart()
 		my_bool reconnect = 1;
 		mysql_options(wSQL, MYSQL_OPT_RECONNECT, &reconnect);
 		mysql_options(wSQL, MYSQL_OPT_COMPRESS, 0);
-		mysql_options(wSQL, MYSQL_OPT_CONNECT_TIMEOUT, "300");
+		unsigned int connectTimeoutSeconds = 10;
+		mysql_options(wSQL, MYSQL_OPT_CONNECT_TIMEOUT, &connectTimeoutSeconds);
 
 		if (!mysql_real_connect(wSQL, HOST, USER, PASS, DB, PORT, NULL, 0))
 		{

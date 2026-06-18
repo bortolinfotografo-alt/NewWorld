@@ -832,9 +832,8 @@ void CReadFiles::ReadGuild()
 
 	fclose(fp);
 
-	if (GuildCounter == 0)
-		;
-		//Log("err, Reading Guild error - Guild counter zero", "-system", 0);
+	if (GuildCounter <= 0)
+		GuildCounter = 1;
 	
 
 }

@@ -2,9 +2,32 @@
 #include "VirtualizerSDK.h"
 
 
+static void LogCreateCharacterPacket(const MSG_CreateCharacter* msg, int a_iSize)
+{
+	char mobName[NAME_LENGTH + 1] = { 0 };
+	memcpy(mobName, msg->MobName, NAME_LENGTH);
+
+	FILE* fp = nullptr;
+	if (fopen_s(&fp, "createchar-send.log", "a") != 0 || fp == nullptr)
+		return;
+
+	SYSTEMTIME now;
+	GetLocalTime(&now);
+	fprintf(fp, "%04u-%02u-%02u %02u:%02u:%02u type=0x%04X size=%d slot=%d class=%d name=%s\n",
+		now.wYear, now.wMonth, now.wDay,
+		now.wHour, now.wMinute, now.wSecond,
+		msg->Type, a_iSize, msg->Slot, msg->MobClass, mobName);
+	fclose(fp);
+}
+
 void ClientSended(MSG_STANDARD* pBuffer, int a_iSize)
 {  
 	VIRTUALIZER_TIGER_WHITE_START
+	if (pBuffer->Type == _MSG_CreateCharacter && a_iSize >= sizeof(MSG_CreateCharacter))
+	{
+		LogCreateCharacterPacket(reinterpret_cast<MSG_CreateCharacter*>(pBuffer), a_iSize);
+	}
+
 	if (pBuffer->Type == 0x20D)
 	{
 		UUID uuid;

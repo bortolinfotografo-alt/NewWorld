@@ -3,6 +3,14 @@
 #include "wMySQL.h"
 #include "Functions.h"
 
+static void PublishLevelUpVisualState(int conn)
+{
+	MSG_CreateMob createMob;
+	GetCreateMob(conn, &createMob);
+	GridMulticast(pMob[conn].TargetX, pMob[conn].TargetY, (MSG_STANDARD*)&createMob, 0);
+	SendEquip(conn, 0);
+}
+
 int g_pAmunraRate[15] =
 {
 	100, 100, 100, 100, 100, 100, 90, 80, 70, 60, 50, 40, 25, 20, 10
@@ -38,7 +46,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 	if (Size > sizeof(MSG_UseItem)) //CONTROLE DE CLIENTE SIZE
 	{
-		SendClientMessage(conn, "Impossível executar ação54, tente mais tarde. ");
+		SendClientMessage(conn, "Impossavel executar aaao54, tente mais tarde. ");
 		return;
 	}
 
@@ -87,6 +95,13 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	if (pUser[conn].TradeMode)
 	{
 		RemoveTrade(conn);
+		return;
+	}
+
+	if ((m->SourType == ITEM_PLACE_CARGO && IsAutoTradeCargoSlotLocked(conn, m->SourPos)) ||
+		(m->DestType == ITEM_PLACE_CARGO && IsAutoTradeCargoSlotLocked(conn, m->DestPos)))
+	{
+		SendClientMessage(conn, "Item anunciado na loja. Feche a loja para usar.");
 		return;
 	}
 
@@ -140,14 +155,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (dest->sIndex >= 3500 && dest->sIndex <= 3507)
 		{
-			SendClientMessage(conn, "Não é possível utilizar em cytheras.");
+			SendClientMessage(conn, "Nao a possavel utilizar em cytheras.");
 			SendItem(conn, ITEM_PLACE_CARRY, m->SourPos, item);
 			return;
 		}
 
 		if (nPos == 64 || nPos == 192 || nPos == 42)
 		{
-			SendClientMessage(conn, "Possível somente para equipamentos de defesa.");
+			SendClientMessage(conn, "Possavel somente para equipamentos de defesa.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -201,14 +216,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (dest->sIndex >= 3500 && dest->sIndex <= 3507)
 		{
-			SendClientMessage(conn, "Não é possível utilizar em cytheras.");
+			SendClientMessage(conn, "Nao a possavel utilizar em cytheras.");
 			SendItem(conn, ITEM_PLACE_CARRY, m->SourPos, item);
 			return;
 		}
 
 		if (nPos == 64 || nPos == 192 || nPos == 42)
 		{
-			SendClientMessage(conn, "Possível somente para equipamentos de defesa.");
+			SendClientMessage(conn, "Possavel somente para equipamentos de defesa.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -324,7 +339,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (dest->sIndex >= 938 && dest->sIndex <= 944)
 		{
-			SendClientMessage(conn, "Esse item não pode ser refinado");
+			SendClientMessage(conn, "Esse item nao pode ser refinado");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -673,7 +688,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 					NextPedra = 1745;//Sabedoria
 
 				else if (_rd < 90)
-					NextPedra = 1746;//Misericórdia
+					NextPedra = 1746;//Misericardia
 
 				else if (_rd < 93)
 					NextPedra = 1747;//Abismo
@@ -690,7 +705,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 					NextPedra = 1745;//Sabedoria
 
 				else if (_rd < 86)
-					NextPedra = 1746;//Misericórdia
+					NextPedra = 1746;//Misericardia
 
 				else if (_rd < 90)
 					NextPedra = 1747;//Abismo
@@ -698,7 +713,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 				RateSucess = 90;
 			}
 
-			else if (dest->sIndex == 1754)//Dragão Lich
+			else if (dest->sIndex == 1754)//Dragao Lich
 			{
 				if (_rd < 3)
 					NextPedra = 1744;//Inteligencia
@@ -707,7 +722,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 					NextPedra = 1745;//Sabedoria
 
 				else if (_rd < 76)
-					NextPedra = 1746;//Misericórdia
+					NextPedra = 1746;//Misericardia
 
 				else if (_rd < 85)
 					NextPedra = 1747;//Abismo
@@ -724,7 +739,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 					NextPedra = 1745;//Sabedoria
 
 				else if (_rd < 25)
-					NextPedra = 1746;//Misericórdia
+					NextPedra = 1746;//Misericardia
 
 				else if (_rd < 80)
 					NextPedra = 1747;//Abismo
@@ -738,7 +753,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 					NextPedra = 1748;//Beleza
 
 				else if (_rd < 62)
-					NextPedra = 1749;//Vitória
+					NextPedra = 1749;//Vitaria
 
 				else if (_rd < 68)
 					NextPedra = 1750;//Originalidade
@@ -755,7 +770,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 					NextPedra = 1748;//Beleza
 
 				else if (_rd < 59)
-					NextPedra = 1749;//Vitória
+					NextPedra = 1749;//Vitaria
 
 				else if (_rd < 63)
 					NextPedra = 1750;//Originalidade
@@ -772,7 +787,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 					NextPedra = 1748;//Beleza
 
 				else if (_rd < 8)
-					NextPedra = 1749;//Vitória
+					NextPedra = 1749;//Vitaria
 
 				else if (_rd < 58)
 					NextPedra = 1750;//Originalidade
@@ -789,7 +804,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 					NextPedra = 1748;//Beleza
 
 				else if (_rd < 5)
-					NextPedra = 1749;//Vitória
+					NextPedra = 1749;//Vitaria
 
 				else if (_rd < 10)
 					NextPedra = 1750;//Originalidade
@@ -987,7 +1002,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		if (item->sIndex == 412) {
 			if (dest->sIndex >= 762 && dest->sIndex <= 767) {
-				SendClientMessage(conn, "Este Item não pode ser refinado com Poeira de Ori");
+				SendClientMessage(conn, "Este Item nao pode ser refinado com Poeira de Ori");
 				return;
 			}
 		}
@@ -1275,11 +1290,27 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		int Level = pMob[conn].MOB.BaseScore.Level;
 		int maxlevel = pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH ? MAX_LEVEL : MAX_CLEVEL;
 
-		if (pMob[conn].extra.ClassMaster >= CELESTIAL)
+		if (pMob[conn].extra.ClassMaster == CELESTIAL || pMob[conn].extra.ClassMaster == CELESTIALCS || pMob[conn].extra.ClassMaster == SCELESTIAL)
+			maxlevel = MAX_CLASSIC_CLEVEL;
+
+		if (item->sIndex == 5600)
 		{
-			SendClientMessage(conn, "Desculpe. Item disponível apenas para Mortais & Arch's.");
-			SendItem(conn, m->SourType, m->SourPos, item);
-			return;
+			// Poeira de Fada Celestial: apenas Celestial / Sub-Celestial
+			if (pMob[conn].extra.ClassMaster < CELESTIAL)
+			{
+				SendClientMessage(conn, "Desculpe. Item disponavel apenas para Celestiais & Sub-Celestiais.");
+				SendItem(conn, m->SourType, m->SourPos, item);
+				return;
+			}
+		}
+		else
+		{
+			if (pMob[conn].extra.ClassMaster >= CELESTIAL)
+			{
+				SendClientMessage(conn, "Desculpe. Item disponavel apenas para Mortais & Arch's.");
+				SendItem(conn, m->SourType, m->SourPos, item);
+				return;
+			}
 		}
 
 		if (Level >= maxlevel || Level < 0)
@@ -1481,7 +1512,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 #pragma endregion
 #pragma endregion
-#pragma region Poção Kappa
+#pragma region Poaao Kappa
 	if (Vol == 10 || Vol == 55 || Vol == 200 || Vol == 201 || Vol == 56 || Vol == 52 || Vol == 53 || Vol == 57 || Vol == 202)
 	{
 		int value = 0;
@@ -1606,7 +1637,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			memset(item, 0, sizeof(STRUCT_ITEM));
 
 		/*
-		snprintf(temp, sizeof(temp), "useitem,poção_kappa affectslot:%d value:%d time:%d", EmptyAffect, value, tempo);
+		snprintf(temp, sizeof(temp), "useitem,poaao_kappa affectslot:%d value:%d time:%d", EmptyAffect, value, tempo);
 		ItemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP, temp);*/
 		return;
 	}
@@ -1719,7 +1750,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (map_att2 & 4 && pMob[conn].MOB.CurrentScore.Level < 1000)
 		{
-			SendClientMessage(conn, "Área de Destino Inválida");
+			SendClientMessage(conn, "area de Destino Invalida");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -1762,7 +1793,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Rações
+#pragma region Raaaes
 	if (Vol == 15)
 	{
 		if (m->DestType || m->DestPos != 14)
@@ -1844,12 +1875,12 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 
 		/*
-		snprintf(temp, sizeof(temp), "useitem,ração mount:%d", mount);
+		snprintf(temp, sizeof(temp), "useitem,raaao mount:%d", mount);
 		ItemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP, temp);*/
 		return;
 	}
 #pragma endregion
-#pragma region >> Âmagos
+#pragma region >> amagos
 	if (Vol == 16)
 	{
 		if (m->DestType || m->DestPos != 14)
@@ -1898,7 +1929,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			int rate = BASE_GetGrowthRate(dest);
 			int _rand = rand() % 100;
 
-			if (_rand > rate) // Refinação falhou
+			if (_rand > rate) // Refinaaao falhou
 			{
 				int rand2 = rand() % 100;
 
@@ -1951,7 +1982,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 				if (pMob[conn].MOB.Equip[0].sIndex / 10)
 					SendEmotion(conn, 14, 0); //Zuada do PET (funfando)
 				SendEmotion(conn, 14, 3); //Lac 100 (funfando)
-				SendClientMessage(conn, "Obteve sucesso na refinação.");
+				SendClientMessage(conn, "Obteve sucesso na refinaaao.");
 			}
 
 			{
@@ -1987,8 +2018,8 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			dest->stEffect[2].cValue = 0;
 			dest->stEffect[2].cEffect = 100;
 
-			if (dest->stEffect[1].cValue >= 60) // Verificação para saber se a vitalidade é maior que 60
-				dest->stEffect[1].cValue = 60; // iguala a vitalidade a 60 para não bugar
+			if (dest->stEffect[1].cValue >= 60) // Verificaaao para saber se a vitalidade a maior que 60
+				dest->stEffect[1].cValue = 60; // iguala a vitalidade a 60 para nao bugar
 
 			SendClientMessage(conn, g_pMessageStringTable[_NN_Mount_Growth]);
 			ProcessAdultMount(conn, 0);
@@ -2062,7 +2093,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 #pragma endregion
 #pragma region Livros Nona e Decima
 #pragma region Livros TRANSKNIGHT
-	if (item->sIndex == 5500) // Proteção Divina
+	if (item->sIndex == 5500) // Proteaao Divina
 	{
 		if (pMob[conn].MOB.BaseScore.Level <= 199)
 		{
@@ -2074,7 +2105,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
@@ -2086,7 +2117,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 4) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
@@ -2094,7 +2125,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 			if ((1 << 8) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -2128,7 +2159,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 8ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 8a Skill.", TNColor::Default, false);
 
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
@@ -2137,13 +2168,13 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
 	}
-	if (item->sIndex == 5501) // Bênção Divina
+	if (item->sIndex == 5501) // Banaao Divina
 	{
 		int ItemID = item->sIndex;
 
@@ -2156,7 +2187,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2165,7 +2196,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 5) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
@@ -2173,7 +2204,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 			if ((1 << 9) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -2206,7 +2237,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 9ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 9a Skill.", TNColor::Default, false);
 
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
@@ -2214,12 +2245,12 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
 	}
-	if (item->sIndex == 5504) // Mãos Sangrentas
+	if (item->sIndex == 5504) // Maos Sangrentas
 	{
 		if (pMob[conn].MOB.BaseScore.Level <= 199)
 		{
@@ -2230,7 +2261,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2241,14 +2272,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 0) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 8) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -2281,14 +2312,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 8ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 8a Skill.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2307,7 +2338,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2316,14 +2347,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 1) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 9) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -2356,18 +2387,18 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 9ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 9a Skill.", TNColor::Default, false);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
 	}
-	if (item->sIndex == 5508) // Espelho Mágico
+	if (item->sIndex == 5508) // Espelho Magico
 	{
 
 		if (pMob[conn].MOB.BaseScore.Level <= 199)
@@ -2379,7 +2410,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2390,14 +2421,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 0) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 4) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -2430,19 +2461,19 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 8ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 8a Skill.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
 	}
-	if (item->sIndex == 5509) // Conexão de Gelo
+	if (item->sIndex == 5509) // Conexao de Gelo
 	{
 		int ItemID = item->sIndex;
 
@@ -2455,7 +2486,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2464,14 +2495,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 1) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 5) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -2504,13 +2535,13 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 9ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 9a Skill.", TNColor::Default, false);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2529,7 +2560,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2540,14 +2571,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 4) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 8) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -2580,7 +2611,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 8ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 8a Skill.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -2588,12 +2619,12 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
 	}
-	if (item->sIndex == 5513) // Proteção Absoluta
+	if (item->sIndex == 5513) // Proteaao Absoluta
 	{
 		int ItemID = item->sIndex;
 
@@ -2606,7 +2637,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2615,14 +2646,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 5) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 9) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -2655,14 +2686,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 9ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 9a Skill.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2679,7 +2710,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2690,14 +2721,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 0) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 8) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -2729,14 +2760,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 8ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 8a Skill.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2755,7 +2786,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2764,14 +2795,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 1) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 9) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -2804,13 +2835,13 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 9ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 9a Skill.", TNColor::Default, false);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2827,7 +2858,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2838,14 +2869,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 0) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 4) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -2878,14 +2909,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 8ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 8a Skill.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2903,7 +2934,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2912,14 +2943,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 1) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 5) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -2952,13 +2983,13 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 9ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 9a Skill.", TNColor::Default, false);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2977,7 +3008,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -2988,14 +3019,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 4) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 8) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -3028,7 +3059,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 8ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 8a Skill.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -3036,7 +3067,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3054,7 +3085,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3063,14 +3094,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 5) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 9) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -3103,14 +3134,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 9ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 9a Skill.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3127,7 +3158,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3138,14 +3169,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 0) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 8) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -3178,20 +3209,20 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 8ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 8a Skill.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
 	}
 
-	if (item->sIndex == 5529) // Invocação Final
+	if (item->sIndex == 5529) // Invocaaao Final
 	{
 		int ItemID = item->sIndex;
 
@@ -3204,7 +3235,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3214,14 +3245,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 1) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 9) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -3254,13 +3285,13 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 9ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 9a Skill.", TNColor::Default, false);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3276,7 +3307,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3287,14 +3318,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 0) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 4) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -3327,14 +3358,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 8ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 8a Skill.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3352,7 +3383,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3361,14 +3392,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 1) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 5) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -3401,13 +3432,13 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 9ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 9a Skill.", TNColor::Default, false);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3425,7 +3456,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3436,14 +3467,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 4) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 8) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -3476,7 +3507,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 8ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 8a Skill.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -3484,12 +3515,12 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
 	}
-	if (item->sIndex == 5537) // Ataque Rápido Proficiente
+	if (item->sIndex == 5537) // Ataque Rapido Proficiente
 	{
 		int ItemID = item->sIndex;
 
@@ -3502,7 +3533,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3511,14 +3542,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 5) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 9) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -3551,14 +3582,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 9ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 9a Skill.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3574,7 +3605,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3585,14 +3616,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 0) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 8) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -3625,20 +3656,20 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 8ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 8a Skill.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
 	}
 
-	if (item->sIndex == 5541) // Absorção de Alma
+	if (item->sIndex == 5541) // Absoraao de Alma
 	{
 		int ItemID = item->sIndex;
 
@@ -3651,7 +3682,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3660,14 +3691,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 1) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 9) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -3700,13 +3731,13 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 9ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 9a Skill.", TNColor::Default, false);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3722,7 +3753,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3733,14 +3764,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 0) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 4) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 9ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 9a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -3773,14 +3804,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 8ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 8a Skill.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3798,7 +3829,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].extra.ClassMaster == MORTAL || pMob[conn].extra.ClassMaster == ARCH)
 		{
-			SendMsgExp(conn, "É necessário ser Celestial/SubCelestial.", TNColor::Default, false);
+			SendMsgExp(conn, "a necessario ser Celestial/SubCelestial.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3807,14 +3838,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if ((1 << 1) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if ((1 << 5) & pMob[conn].extra.SecLearnedSkill)
 			{
-				SendMsgExp(conn, "Apenas uma 10ª Skill por personagem.", TNColor::Default, false);
+				SendMsgExp(conn, "Apenas uma 10a Skill por personagem.", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -3847,13 +3878,13 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 			else
 			{
-				SendMsgExp(conn, "Necessário ter aprendido a 9ª Skill.", TNColor::Default, false);
+				SendMsgExp(conn, "Necessario ter aprendido a 9a Skill.", TNColor::Default, false);
 				return;
 			}
 		}
 		else
 		{
-			SendMsgExp(conn, "Esse livro não pertence a sua Classe.", TNColor::Default, false);
+			SendMsgExp(conn, "Esse livro nao pertence a sua Classe.", TNColor::Default, false);
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -3946,7 +3977,38 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		return;
 	}
-#pragma endregion 
+#pragma endregion
+#pragma region Teleporte para a frente da agua (clicar pergaminho fora da agua, sem consumir)
+	if ((Vol >= 21 && Vol <= 30) || (Vol >= 131 && Vol <= 140) || (Vol >= 161 && Vol <= 170))
+	{
+		int wtype;
+		if (Vol >= 131 && Vol <= 140) wtype = 0;      // Agua N
+		else if (Vol >= 161 && Vol <= 170) wtype = 2; // Agua A
+		else wtype = 1;                               // Agua M (21..30)
+
+		int TXf = pMob[conn].TargetX;
+		int TYf = pMob[conn].TargetY;
+		int dentroAgua = 0;
+		for (int i = 0; i < 10; i++)
+		{
+			if (TXf >= WaterScrollPosition[wtype][i][0] - 12 && TYf >= WaterScrollPosition[wtype][i][1] - 12
+				&& TXf <= WaterScrollPosition[wtype][i][0] + 12 && TYf <= WaterScrollPosition[wtype][i][1] + 12)
+			{
+				dentroAgua = 1;
+				break;
+			}
+		}
+		bool naEntrada = ((TXf / 4) == 491 && (TYf / 4) == 443);
+
+		// Fora da agua: teleporta para a frente (entrada) SEM consumir o pergaminho.
+		if (!dentroAgua && !naEntrada)
+		{
+			DoTeleport(conn, 1965, 1773);
+			SendItem(conn, m->SourType, m->SourPos, item);
+			return;
+		}
+	}
+#pragma endregion
 #pragma region Pergaminho da agua N
 	if (Vol >= 131 && Vol <= 140)
 	{
@@ -4055,6 +4117,8 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		else
 			memset(item, 0, sizeof(STRUCT_ITEM));
+
+		SendItem(conn, m->SourType, m->SourPos, item);
 
 		return;
 	}
@@ -4168,6 +4232,8 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		else
 			memset(item, 0, sizeof(STRUCT_ITEM));
 
+		SendItem(conn, m->SourType, m->SourPos, item);
+
 		return;
 	}
 #pragma endregion
@@ -4272,6 +4338,8 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		else
 			memset(item, 0, sizeof(STRUCT_ITEM));
+
+		SendItem(conn, m->SourType, m->SourPos, item);
 
 		return;
 	}
@@ -4449,7 +4517,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	}
 #pragma endregion
 
-#pragma region >> Poção Divina 7 15 30 Dias 
+#pragma region >> Poaao Divina 7 15 30 Dias 
 	if ((item->sIndex >= 3379 && item->sIndex <= 3381) || item->sIndex == 5709)
 	{
 		int divina = GetEmptyAffect(conn, 34);
@@ -4777,7 +4845,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Poção Saúde
+#pragma region Poaao Saade
 	if (Vol == 58)
 	{
 		int sAffect = GetEmptyAffect(conn, 35);
@@ -4854,7 +4922,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 	}
 #pragma endregion
-#pragma region Baú de XP
+#pragma region Baa de XP
 	if (Vol == 198)
 	{
 		int sAffect = GetEmptyAffect(conn, 39);
@@ -4887,7 +4955,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Removedor de Pergaminho da Transformação
+#pragma region Removedor de Pergaminho da Transformaaao
 	if (item->sIndex == 3335)
 	{
 		int trans = pMob[conn].MOB.Equip[0].sIndex == 316 || pMob[conn].MOB.Equip[0].sIndex == 317 || pMob[conn].MOB.Equip[0].sIndex == 297 ||
@@ -4930,7 +4998,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		else
 		{
-			SendMsgExp(conn, "Você não está transformado!", TNColor::Default, false);
+			SendMsgExp(conn, "Voca nao esta transformado!", TNColor::Default, false);
 
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
@@ -4940,8 +5008,8 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	}
 #pragma endregion
 
-#pragma region >>Poção revigorante
-	if (item->sIndex == 5548)
+#pragma region >>Poaao revigorante
+	if (item->sIndex == 5548 || item->sIndex == 3210 || item->sIndex == 3211 || item->sIndex == 3212)
 	{
 		int sAffect = GetEmptyAffect(conn, 51);
 
@@ -4955,7 +5023,12 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		pMob[conn].Affect[sAffect].Type = 51;
 		pMob[conn].Affect[sAffect].Level = 2;
 		pMob[conn].Affect[sAffect].Value = 0;
-		pMob[conn].Affect[sAffect].Time = AFFECT_1D * 7;
+		if (item->sIndex == 3210)
+			pMob[conn].Affect[sAffect].Time = AFFECT_1D;
+		else if (item->sIndex == 3211)
+			pMob[conn].Affect[sAffect].Time = AFFECT_1D * 3;
+		else
+			pMob[conn].Affect[sAffect].Time = AFFECT_1D * 7;
 
 		pMob[conn].GetCurrentScore(conn);
 		SendScore(conn);
@@ -5010,7 +5083,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	if (Vol == 178)
 	{
 		if (pUser[conn].Keys[49] == 1) {
-			SendClientMessage(conn, "Passe do Evento já está ativo");
+			SendClientMessage(conn, "Passe do Evento ja esta ativo");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -5095,7 +5168,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		pMob[conn].MOB.Coin += CReadFiles::QuestCoin[thisQuest];
 		pMob[conn].MOB.Exp += QuestExp;
 
-#pragma region Log de Experiência diário
+#pragma region Log de Experiancia diario
 		if (when.tm_yday != pMob[conn].extra.DayLog.YearDay)
 			pMob[conn].extra.DayLog.Exp = 0;
 
@@ -5126,9 +5199,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			SendScore(conn);
 			SendEtc(conn);
 			doRanking(conn);
-			MSG_CreateMob sCreateMob;
-			GetCreateMob(conn, &sCreateMob);
-			GridMulticast(pMob[conn].TargetX, pMob[conn].TargetY, (MSG_STANDARD*)&sCreateMob, 0);
+			PublishLevelUpVisualState(conn);
 		}
 
 		SendEtc(conn);
@@ -5148,7 +5219,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 			//SendMsgExp(partyleader, temp, TNColor::Default, strFmt(g_pMessageStringTable[_NS_GETEXP], false));
 
-#pragma region Log de Experiência diário
+#pragma region Log de Experiancia diario
 			if (when.tm_yday != pMob[partyleader].extra.DayLog.YearDay)
 				pMob[partyleader].extra.DayLog.Exp = 0;
 
@@ -5172,9 +5243,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 				SendScore(partyleader);
 				doRanking(partyleader);
 				SendEtc(partyleader);
-				MSG_CreateMob sCreateMob;
-				GetCreateMob(partyleader, &sCreateMob);
-				GridMulticast(pMob[partyleader].TargetX, pMob[partyleader].TargetY, (MSG_STANDARD*)&sCreateMob, 0);
+				PublishLevelUpVisualState(partyleader);
 
 			}
 			SendEtc(partyleader);
@@ -5195,7 +5264,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			{
 				pMob[partymember].MOB.Exp += QuestExpParty;
 
-#pragma region Log de Experiência diário
+#pragma region Log de Experiancia diario
 				if (when.tm_yday != pMob[partymember].extra.DayLog.YearDay)
 					pMob[partymember].extra.DayLog.Exp = 0;
 
@@ -5220,9 +5289,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 					SendScore(partymember);
 					SendEtc(partymember);
 					doRanking(partymember);
-					MSG_CreateMob sCreateMob;
-					GetCreateMob(partymember, &sCreateMob);
-					GridMulticast(pMob[partymember].TargetX, pMob[partymember].TargetY, (MSG_STANDARD*)&sCreateMob, 0);
+					PublishLevelUpVisualState(partymember);
 
 				}
 
@@ -5614,7 +5681,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Portão Infernal N/M (Ind/Grupo)
+#pragma region Portao Infernal N/M (Ind/Grupo)
 	if (Vol == 176)
 	{
 		int TargetX = pMob[conn].TargetX;
@@ -5684,7 +5751,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			}
 		}
 
-		//Portão Infernal
+		//Portao Infernal
 		for (int i = PI_INITIAL1; i <= PI_END1; i++)
 			GenerateMob(i, 0, 0);
 
@@ -5721,7 +5788,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 
 		if (pMob[conn].MOB.Coin < 15000000) {
-			SendClientMessage(conn, "Você precisa pagar 15kk para entrar nessa quest");
+			SendClientMessage(conn, "Voca precisa pagar 15kk para entrar nessa quest");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -5812,11 +5879,19 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Pedidos de caça
+#pragma region Pedidos de caaa
 	if (Vol == 195)
 	{
 		if (item->sIndex < 3432 || item->sIndex > 3437)
 			return;
+
+#if !NIPPLEHEIM_HABILITADO
+		if (item->sIndex == 3437)
+		{
+			SendClientMessage(conn, "Karden sera habilitado em breve.");
+			return;
+		}
+#endif
 
 		if (m->WarpID <= 0 || m->WarpID > 10)
 			return;
@@ -5839,14 +5914,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (mountIndex < 2330 || mountIndex >= 2390 || mountIndex < 3091 && mountIndex >= 3139)
 		{
-			SendClientMessage(conn, "?Sua montaria não está ferida.?");
+			SendClientMessage(conn, "?Sua montaria nao esta ferida.?");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
 
 		if (pMob[conn].MOB.Equip[14].stEffect[0].sValue > 0)
 		{
-			SendClientMessage(conn, "?Sua montaria não está ferida.?");
+			SendClientMessage(conn, "?Sua montaria nao esta ferida.?");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -5865,9 +5940,9 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		pMob[conn].MOB.Coin -= price;
 
-		int vit = BASE_GetItemAbility(&pMob[conn].MOB.Equip[14], 79);
+		int vit = BASE_GetItemAbility(&pMob[conn].MOB.Equip[14], EF_MOUNTLIFE);
 
-		vit -= rand() % 3;
+		vit -= (rand() % 3) + 1;
 
 		if (vit > 0)
 		{
@@ -5902,7 +5977,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	{
 		if (EvolutionStatus < 2)
 		{
-			SendClientMessage(conn, "Criação de Celestial Bloqueada");
+			SendClientMessage(conn, "Criaaao de Celestial Bloqueada");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -5913,14 +5988,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if (pMob[conn].extra.ClassMaster != ARCH && pMob[conn].extra.ClassMaster != CELESTIAL)
 			{
-				SendClientMessage(conn, "Não há quest's disponíveis para sua classe.");
+				SendClientMessage(conn, "Nao ha quest's disponaveis para sua classe.");
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if (pMob[conn].extra.ClassMaster == ARCH && pMob[conn].MOB.CurrentScore.Level < 399)
 			{
-				SendClientMessage(conn, "Somente personagem nível 400.");
+				SendClientMessage(conn, "Somente personagem navel 400.");
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -5936,21 +6011,21 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 			if (pMob[conn].extra.ClassMaster == CELESTIAL && (pMob[conn].MOB.Equip[11].sIndex < 1760 || pMob[conn].MOB.Equip[11].sIndex > 1763))
 			{
-				SendClientMessage(conn, "Equipe a o item (Sephirot[Classe]) para concluír esta Quest.");
+				SendClientMessage(conn, "Equipe a o item (Sephirot[Classe]) para concluar esta Quest.");
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if (pMob[conn].extra.ClassMaster == CELESTIAL && pMob[conn].MOB.CurrentScore.Level < 120)
 			{
-				SendClientMessage(conn, "Seu Persogaem deve possuir nivel 121 + !"); //"Somente personagem nível 120.");
+				SendClientMessage(conn, "Seu Persogaem deve possuir nivel 121 + !"); //"Somente personagem navel 120.");
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
 
 			if (pMob[conn].extra.ClassMaster == CELESTIAL && pMob[conn].extra.Fame < 100)
 			{
-				SendClientMessage(conn, "Seu personagem não possui [100] de Fame.");
+				SendClientMessage(conn, "Seu personagem nao possui [100] de Fame.");
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -6153,7 +6228,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if (pMob[conn].extra.ClassMaster != ARCH && pMob[conn].extra.ClassMaster != CELESTIAL && pMob[conn].extra.ClassMaster != CELESTIALCS && pMob[conn].extra.ClassMaster != HARDCORE && pMob[conn].extra.ClassMaster != HARDCOREA)
 			{
-				SendClientMessage(conn, "Não há quest's disponíveis para sua classe.");
+				SendClientMessage(conn, "Nao ha quest's disponaveis para sua classe.");
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -6169,7 +6244,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 			if ((pMob[conn].extra.ClassMaster == CELESTIAL || pMob[conn].extra.ClassMaster == CELESTIALCS) && pMob[conn].extra.Fame < 100)
 			{
-				SendClientMessage(conn, "Seu personagem não possui [100] de Fame.");
+				SendClientMessage(conn, "Seu personagem nao possui [100] de Fame.");
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -6178,7 +6253,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 				pMob[conn].MOB.Equip[11].sIndex != 1760 && pMob[conn].MOB.Equip[11].sIndex != 1761 && pMob[conn].MOB.Equip[11].sIndex != 1762
 				&& pMob[conn].MOB.Equip[11].sIndex != 1763))
 			{
-				SendClientMessage(conn, "Equipe a o item (Sephirot[Classe]) para concluír esta Quest.");
+				SendClientMessage(conn, "Equipe a o item (Sephirot[Classe]) para concluar esta Quest.");
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -6204,7 +6279,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 			if ((pMob[conn].extra.ClassMaster == HARDCORE || pMob[conn].extra.ClassMaster == HARDCOREA) && pMob[conn].extra.Fame < 100)
 			{
-				SendClientMessage(conn, "Seu personagem não possui [100] de Fame.");
+				SendClientMessage(conn, "Seu personagem nao possui [100] de Fame.");
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -6221,7 +6296,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 				pMob[conn].MOB.Equip[11].sIndex != 1760 && pMob[conn].MOB.Equip[11].sIndex != 1761 && pMob[conn].MOB.Equip[11].sIndex != 1762
 				&& pMob[conn].MOB.Equip[11].sIndex != 1763))
 			{
-				SendClientMessage(conn, "Equipe a o item (Sephirot[Classe]) para concluír esta Quest.");
+				SendClientMessage(conn, "Equipe a o item (Sephirot[Classe]) para concluar esta Quest.");
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -6508,7 +6583,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 				else if (pMob[conn].MOB.Equip[10].sIndex == 1742 && (pMob[conn].MOB.Equip[11].sIndex != 1760 && pMob[conn].MOB.Equip[11].sIndex != 1761 && pMob[conn].MOB.Equip[11].sIndex != 1762 && pMob[conn].MOB.Equip[11].sIndex != 1763))
 				{
 
-					SendClientMessage(conn, "Divino não pode ser criado por Celestial a partir da versão 7.55");
+					SendClientMessage(conn, "Divino nao pode ser criado por Celestial a partir da versao 7.55");
 					return;
 				}
 			}
@@ -6516,7 +6591,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			if (pMob[conn].extra.ClassMaster == CELESTIALCS)
 			{
 
-				SendClientMessage(conn, "Divino não pode ser criado por Celestial a partir da versão 7.55");
+				SendClientMessage(conn, "Divino nao pode ser criado por Celestial a partir da versao 7.55");
 				return;
 			}
 
@@ -6717,6 +6792,8 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			memmove_s(pMob[conn].extra.SaveCelestial[cl].SkillBar1, 4, pMob[conn].MOB.SkillBar, 4);
 			memmove_s(pMob[conn].extra.SaveCelestial[cl].SkillBar2, 16, pUser[conn].CharShortSkill, 16);
 
+			RemoveOwnedSummons(conn);
+
 			pMob[conn].MOB.BaseScore = pMob[conn].extra.SaveCelestial[ncl].BaseScore;
 			//pMob[conn].MOB.CurrentScore = pMob[conn].extra.SaveCelestial[ncl].CurrentScore;
 			pMob[conn].MOB.Class = pMob[conn].extra.SaveCelestial[ncl].Class;
@@ -6842,6 +6919,8 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 				memmove_s(pMob[conn].extra.SaveCelestial[cl].SkillBar1, 4, pMob[conn].MOB.SkillBar, 4);
 				memmove_s(pMob[conn].extra.SaveCelestial[cl].SkillBar2, 16, pUser[conn].CharShortSkill, 16);
 
+				RemoveOwnedSummons(conn);
+
 				pMob[conn].MOB.BaseScore = pMob[conn].extra.SaveCelestial[ncl].BaseScore;
 				pMob[conn].MOB.Class = pMob[conn].extra.SaveCelestial[ncl].Class;
 				pMob[conn].MOB.Exp = pMob[conn].extra.SaveCelestial[ncl].Exp;
@@ -6940,6 +7019,8 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 				memmove_s(pMob[conn].extra.SaveCelestial[hc].SkillBar1, 4, pMob[conn].MOB.SkillBar, 4);
 				memmove_s(pMob[conn].extra.SaveCelestial[hc].SkillBar2, 16, pUser[conn].CharShortSkill, 16);
+
+				RemoveOwnedSummons(conn);
 
 				pMob[conn].MOB.BaseScore = pMob[conn].extra.SaveCelestial[nhc].BaseScore;
 				pMob[conn].MOB.Class = pMob[conn].extra.SaveCelestial[nhc].Class;
@@ -7147,13 +7228,6 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if (pMob[conn].extra.ClassMaster == ARCH)
 			{
-				if (pMob[conn].MOB.CurrentScore.Level == 369)
-				{
-					SendClientMessage(conn, "Quest não pode ser concluída no nível 370.");
-					SendItem(conn, m->SourType, m->SourPos, item);
-					return;
-				}
-
 				if (pMob[conn].MOB.CurrentScore.Level < 355)
 				{
 					SendMsgExp(conn, strFmt(g_pMessageStringTable[_DN_Level_Limit], 356), TNColor::Default, false);
@@ -7338,13 +7412,13 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 	}
 #pragma endregion
-#pragma region Pedra da Fúria
+#pragma region Pedra da Faria
 	if (item->sIndex == 3020)
 	{
 		if ((pMob[conn].extra.ClassMaster == CELESTIAL || pMob[conn].extra.ClassMaster == CELESTIALCS || pMob[conn].extra.ClassMaster == SCELESTIAL) && pMob[conn].MOB.CurrentScore.Level >= 199)
 		{
 			if (!pMob[conn].MOB.Equip[1].sIndex) {
-				SendClientMessage(conn, "É Preciso estar com a Cythera equipada");
+				SendClientMessage(conn, "a Preciso estar com a Cythera equipada");
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -7558,7 +7632,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Proteção Divina
+#pragma region Proteaao Divina
 	if (item->sIndex == 679)
 	{
 		int _rand = rand() % 115;
@@ -7601,7 +7675,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 					}
 					else
 					{
-						SendClientMessage(conn, "Falha no destrave de nível.");
+						SendClientMessage(conn, "Falha no destrave de navel.");
 						if (amount > 1)
 							BASE_SetItemAmount(item, amount - 1);
 
@@ -7636,7 +7710,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 					}
 					else
 					{
-						SendClientMessage(conn, "Falha no destrave de nível.");
+						SendClientMessage(conn, "Falha no destrave de navel.");
 						if (amount > 1)
 							BASE_SetItemAmount(item, amount - 1);
 
@@ -7672,7 +7746,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 					}
 					else
 					{
-						SendClientMessage(conn, "Falha no destrave de nível.");
+						SendClientMessage(conn, "Falha no destrave de navel.");
 						if (amount > 1)
 							BASE_SetItemAmount(item, amount - 1);
 
@@ -7707,7 +7781,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 					}
 					else
 					{
-						SendClientMessage(conn, "Falha no destrave de nível.");
+						SendClientMessage(conn, "Falha no destrave de navel.");
 						if (amount > 1)
 							BASE_SetItemAmount(item, amount - 1);
 
@@ -7728,7 +7802,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Sussurro Demoníaco
+#pragma region Sussurro Demonaaco
 	if (item->sIndex == 3478)
 	{
 		if (pMob[conn].extra.ClassMaster < CELESTIAL || pMob[conn].extra.ClassMaster > CELESTIALCS)
@@ -7959,7 +8033,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Remédio da Coragem
+#pragma region Remadio da Coragem
 	if (item->sIndex == 4046 || item->sIndex == 646)
 	{
 		int sAffect = GetEmptyAffect(conn, 30);
@@ -8022,7 +8096,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Feijão magico
+#pragma region Feijao magico
 	if (Vol == 186)
 	{
 		STRUCT_ITEM* dest = GetItemPointer(&pMob[conn].MOB, pUser[conn].Cargo, m->DestType, m->DestPos);
@@ -8047,7 +8121,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (sanc < 7)
 		{
-			SendClientMessage(conn, "Possível somente para equipamentos acima de +6.");
+			SendClientMessage(conn, "Possavel somente para equipamentos acima de +6.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -8114,7 +8188,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 #pragma endregion
 
 
-#pragma region Pergaminho do Perdão
+#pragma region Pergaminho do Perdao
 	if (Vol == 203)
 	{
 		SetPKPoint(conn, 150);
@@ -8126,12 +8200,12 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		GridMulticast(pMob[conn].TargetX, pMob[conn].TargetY, (MSG_STANDARD*)&sm_pp, 0);
 
 		SendEmotion(conn, 14, 3);
-		pMob[conn].extra.EMPTY[0] = 0; //remove puniçao cp
-		pMob[conn].extra.EMPTY[1] = 0; //remove puniçao cp
+		pMob[conn].extra.EMPTY[0] = 0; //remove puniaao cp
+		pMob[conn].extra.EMPTY[1] = 0; //remove puniaao cp
 		pMob[conn].GetCurrentScore(conn);
 		SendScore(conn);
 		SendEtc(conn);
-		SendClientMessage(conn, "Punições CP foram removidas");
+		SendClientMessage(conn, "Puniaaes CP foram removidas");
 		SaveUser(conn, 0);
 
 		if (amount > 1)
@@ -8483,7 +8557,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Entrada do Território
+#pragma region Entrada do Territario
 	if (Vol == 188)
 	{
 		if (pMob[conn].TargetX >= 3604 && pMob[conn].TargetY >= 3601 && pMob[conn].TargetX <= 3690 && pMob[conn].TargetY <= 3690
@@ -8637,7 +8711,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Jóias PvP
+#pragma region Jaias PvP
 	if (Vol == 242)
 	{
 		int sAffect = GetEmptyAffect(conn, 8);
@@ -8707,7 +8781,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Armazenagem - Recuperação
+#pragma region Armazenagem - Recuperaaao
 	if (Vol == 243)
 	{
 		if (item->sIndex == 3203)
@@ -8849,17 +8923,17 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			int srand = rand() % 3;
 
 			if (srand == 0) {
-				Item.sIndex = 2411; // Âmago de Uni
+				Item.sIndex = 2411; // amago de Uni
 				Item.stEffect[0].cEffect = 61;
 				Item.stEffect[0].cValue = 15;
 			}
 			else if (srand == 1) {
-				Item.sIndex = 2412; // Âmago de unisus
+				Item.sIndex = 2412; // amago de unisus
 				Item.stEffect[0].cEffect = 61;
 				Item.stEffect[0].cValue = 15;
 			}
 			else if (srand == 2) {
-				Item.sIndex = 2413; // Âmago de Pégasus
+				Item.sIndex = 2413; // amago de Pagasus
 				Item.stEffect[0].cEffect = 61;
 				Item.stEffect[0].cValue = 15;
 			}
@@ -8928,7 +9002,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Caixa de Planeta Aleatório
+#pragma region Caixa de Planeta Aleatario
 	if (item->sIndex == 5773)
 	{
 		STRUCT_ITEM Item;
@@ -9120,7 +9194,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		int cat = item->sIndex - 3344;
 
 		// Kapel
-		if (mount >= 2333 && mount <= 2335) //Dente de Sabre, Dragão Menor, Urso
+		if (mount >= 2333 && mount <= 2335) //Dente de Sabre, Dragao Menor, Urso
 			mount = 0;
 
 		// Acuban
@@ -9132,7 +9206,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			mount = 2;
 
 		// Birago
-		if (mount >= 2346 && mount <= 2348) //Dragão, Fenri das Sombras, Fenri
+		if (mount >= 2346 && mount <= 2348) //Dragao, Fenri das Sombras, Fenri
 			mount = 3;
 
 		// Yus
@@ -9144,7 +9218,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			mount = 5;
 
 		// Alperath
-		if (mount >= 2349 && mount <= 2350) //Dragão Vermelho, Tigre de Fogo
+		if (mount >= 2349 && mount <= 2350) //Dragao Vermelho, Tigre de Fogo
 			mount = 6;
 
 		if (mount != cat)
@@ -9212,14 +9286,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		if (dest->stEffect[1].cValue < 1 || dest->stEffect[1].cValue >= 60)
 		{
 			SendItem(conn, m->SourType, m->SourPos, item);
-			SendClientMessage(conn, "Vitalidade da montaria está no máximo.");
+			SendClientMessage(conn, "Vitalidade da montaria esta no maximo.");
 			return;
 		}
 
 		if (!CheckMount(item, dest->sIndex))
 		{
 			SendItem(conn, m->SourType, m->SourPos, item);
-			SendClientMessage(conn, "Usado apenas nas montarias citadas na descrição.");
+			SendClientMessage(conn, "Usado apenas nas montarias citadas na descriaao.");
 			return;
 		}
 
@@ -9241,7 +9315,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Mandado de Exílio
+#pragma region Mandado de Exalio
 	if (item->sIndex == 5602)
 	{
 		int Clan = pMob[conn].MOB.Clan;
@@ -9344,7 +9418,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			if (dest->stEffect[a].cEffect == EF_DAMAGE || dest->stEffect[a].cEffect == EF_DAMAGE2) {
 				dest->stEffect[a].cEffect = EF_DAMAGE;
 				if (dest->stEffect[a].cValue < (m->DestPos != 6 && m->DestPos != 7 ? 12 : 24)) {
-					SendClientMessage(conn, "Não é possível aprimorar este item.");
+					SendClientMessage(conn, "Nao a possavel aprimorar este item.");
 					SendItem(conn, m->SourType, m->SourPos, item);
 					return;
 				}
@@ -9355,7 +9429,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			if (dest->stEffect[b].cEffect == EF_DAMAGE || dest->stEffect[b].cEffect == EF_DAMAGE2) {
 				dest->stEffect[b].cEffect = EF_DAMAGE;
 				if (dest->stEffect[b].cValue == (m->DestPos != 6 && m->DestPos != 7 ? 42 : 81)) {
-					SendClientMessage(conn, "Não é possível aprimorar este item.");
+					SendClientMessage(conn, "Nao a possavel aprimorar este item.");
 					SendItem(conn, m->SourType, m->SourPos, item);
 					return;
 				}
@@ -9470,7 +9544,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			if (dest->stEffect[a].cEffect == EF_MAGIC || dest->stEffect[a].cEffect == EF_MAGICADD) {
 				dest->stEffect[a].cEffect = EF_MAGIC;
 				if (dest->stEffect[a].cValue < (m->DestPos != 6 && m->DestPos != 7 ? 6 : 16)) {
-					SendClientMessage(conn, "Não é possível aprimorar este item.");
+					SendClientMessage(conn, "Nao a possavel aprimorar este item.");
 					SendItem(conn, m->SourType, m->SourPos, item);
 
 
@@ -9485,7 +9559,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			if (dest->stEffect[b].cEffect == EF_MAGIC || dest->stEffect[b].cEffect == EF_MAGICADD) {
 				dest->stEffect[b].cEffect = EF_MAGIC;
 				if (dest->stEffect[b].cValue == (m->DestPos != 6 && m->DestPos != 7 ? 14 : 36)) {
-					SendClientMessage(conn, "Não é possível aprimorar este item.");
+					SendClientMessage(conn, "Nao a possavel aprimorar este item.");
 					SendItem(conn, m->SourType, m->SourPos, item);
 					return;
 				}
@@ -9587,7 +9661,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (dest->sIndex >= 3500 && dest->sIndex <= 3507)
 		{
-			SendClientMessage(conn, "Impossível Utilizar com Cytheras");
+			SendClientMessage(conn, "Impossavel Utilizar com Cytheras");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -9623,14 +9697,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		if (dam < min_add)
 		{
 			SendItem(conn, m->SourType, m->SourPos, item);
-			SendClientMessage(conn, "Não é possível aprimorar este item.");
+			SendClientMessage(conn, "Nao a possavel aprimorar este item.");
 			return;
 		}
 
 		if (dam >= max_add)
 		{
 			SendItem(conn, m->SourType, m->SourPos, item);
-			SendClientMessage(conn, "Não é possível aprimorar este item.");
+			SendClientMessage(conn, "Nao a possavel aprimorar este item.");
 			return;
 		}
 
@@ -9708,7 +9782,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Barra Mytril (Crítico)
+#pragma region Barra Mytril (Cratico)
 	if (Vol == 238)
 	{
 		STRUCT_ITEM* dest = GetItemPointer(&pMob[conn].MOB, pUser[conn].Cargo, m->DestType, m->DestPos);
@@ -9740,14 +9814,14 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		if (dam < min_add)
 		{
 			SendItem(conn, m->SourType, m->SourPos, item);
-			SendClientMessage(conn, "Não é possível aprimorar este item.");
+			SendClientMessage(conn, "Nao a possavel aprimorar este item.");
 			return;
 		}
 
 		if (dam >= max_add)
 		{
 			SendItem(conn, m->SourType, m->SourPos, item);
-			SendClientMessage(conn, "Não é possível aprimorar este item.");
+			SendClientMessage(conn, "Nao a possavel aprimorar este item.");
 			return;
 		}
 
@@ -9858,7 +9932,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			sprintf(xQuery, "UPDATE accounts SET donate = '%d' WHERE username = '%s' ", (Donate + 100), pUser[conn].AccountName);
 			pc.wQuery(xQuery);
 
-			SendMsgExp(conn, "Você ativou 100 de Donate.", TNColor::GoldenClaro, false);
+			SendMsgExp(conn, "Voca ativou 100 de Donate.", TNColor::GoldenClaro, false);
 			ItemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP, "useitem, 3394 - Ativou 100 Donate");
 
 			if (amount > 1)
@@ -9878,7 +9952,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			sprintf(xQuery, "UPDATE accounts SET donate = '%d' WHERE username = '%s' ", (Donate + 1000), pUser[conn].AccountName);
 			pc.wQuery(xQuery);
 
-			SendMsgExp(conn, "Você ativou 1.000 de Donate.", TNColor::GoldenClaro, false);
+			SendMsgExp(conn, "Voca ativou 1.000 de Donate.", TNColor::GoldenClaro, false);
 			ItemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP, "useitem, 3395 - Ativou 1.000 Donate");
 
 			if (amount > 1)
@@ -9898,7 +9972,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			sprintf(xQuery, "UPDATE accounts SET donate = '%d' WHERE username = '%s' ", (Donate + 5000), pUser[conn].AccountName);
 			pc.wQuery(xQuery);
 
-			SendMsgExp(conn, "Você ativou 5.000 de Donate.", TNColor::GoldenClaro, false);
+			SendMsgExp(conn, "Voca ativou 5.000 de Donate.", TNColor::GoldenClaro, false);
 			ItemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP, "useitem, 3396 - Ativou 5.000 Donate");
 
 			if (amount > 1)
@@ -9915,8 +9989,8 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	}
 
 #pragma endregion 
-#pragma region extrações(Item)
-#pragma region extração Elmo
+#pragma region extraaaes(Item)
+#pragma region extraaao Elmo
 	if (item->sIndex == 3021)
 	{
 		if (pMob[conn].MOB.Equip[1].sIndex == 0)
@@ -9927,7 +10001,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].MOB.Equip[1].sIndex >= 3500 && pMob[conn].MOB.Equip[1].sIndex <= 3507)
 		{
-			SendClientMessage(conn, "Não é possível utilizar em cytheras.");
+			SendClientMessage(conn, "Nao a possavel utilizar em cytheras.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -9956,7 +10030,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region >> extração Elmo
+#pragma region >> extraaao Elmo
 	if (item->sIndex == 3021)
 	{
 		int extra = BASE_GetItemAbility(item, EF_ITEMLEVEL);
@@ -9969,7 +10043,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].MOB.Equip[1].sIndex >= 3500 && pMob[conn].MOB.Equip[1].sIndex <= 3507)
 		{
-			SendClientMessage(conn, "Não é possivel utilizar em Cytheras.");
+			SendClientMessage(conn, "Nao a possivel utilizar em Cytheras.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -10015,7 +10089,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	}
 
 #pragma endregion
-#pragma region >> extração Peito
+#pragma region >> extraaao Peito
 	if (item->sIndex == 3022)
 	{
 		int extra = BASE_GetItemAbility(item, EF_ITEMLEVEL);
@@ -10065,7 +10139,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 	}
 #pragma endregion
-#pragma region >> extração Calça
+#pragma region >> extraaao Calaa
 	if (item->sIndex == 3023)
 	{
 		int extra = BASE_GetItemAbility(item, EF_ITEMLEVEL);
@@ -10117,7 +10191,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 	}
 #pragma endregion
-#pragma region >> extração Luva
+#pragma region >> extraaao Luva
 	if (item->sIndex == 3024)
 	{
 		int extra = BASE_GetItemAbility(item, EF_ITEMLEVEL);
@@ -10168,7 +10242,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 	}
 #pragma endregion
-#pragma region >> extração Bota
+#pragma region >> extraaao Bota
 	if (item->sIndex == 3025)
 	{
 		int extra = BASE_GetItemAbility(item, EF_ITEMLEVEL);
@@ -10225,7 +10299,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	}
 #pragma endregion
 
-#pragma region >> Extração Arma
+#pragma region >> Extraaao Arma
 	if (item->sIndex == 3026)
 	{
 		if (item->stEffect[0].cEffect == 0 && item->stEffect[0].cValue == 0 && item->stEffect[1].cEffect == 0 && item->stEffect[1].cValue == 0 && item->stEffect[2].cEffect == 0 && item->stEffect[2].cValue == 0) {
@@ -10275,7 +10349,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 					memset(item, 0, sizeof(STRUCT_ITEM));
 
 				SendEmotion(conn, 14, 3);
-				SendClientMessage(conn, "Extraído com sucesso.");
+				SendClientMessage(conn, "Extraado com sucesso.");
 				SendCarry(conn);
 				return;
 			}
@@ -10334,7 +10408,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 					memset(item, 0, sizeof(STRUCT_ITEM));
 
 				SendEmotion(conn, 14, 3);
-				SendClientMessage(conn, "Extraído com sucesso.");
+				SendClientMessage(conn, "Extraado com sucesso.");
 				SendCarry(conn);
 				return;
 			}
@@ -10345,12 +10419,12 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 #pragma endregion
 
-#pragma region Transmutações 
+#pragma region Transmutaaaes 
 	if (item->sIndex == 5614)
 	{
 		if (pMob[conn].extra.ClassMaster == MORTAL)
 		{
-			SendClientMessage(conn, "Sua classe atual não é permitida.");
+			SendClientMessage(conn, "Sua classe atual nao a permitida.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -10361,6 +10435,8 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
+
+		RemoveOwnedSummons(conn);
 
 		pMob[conn].MOB.Class = pMob[conn].MOB.Equip[11].sIndex - 1760;
 
@@ -10467,13 +10543,13 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	{
 		if (pMob[conn].extra.QuestInfo.Mortal.equilibrio)
 		{
-			SendClientMessage(conn, "Você já completou essa quest!");
+			SendClientMessage(conn, "Voca ja completou essa quest!");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
 		if (pMob[conn].extra.ClassMaster != MORTAL)
 		{
-			SendClientMessage(conn, "Sua classe atual não é permitida.");
+			SendClientMessage(conn, "Sua classe atual nao a permitida.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -10483,7 +10559,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].MOB.CurrentScore.Level < minlevel || pMob[conn].MOB.CurrentScore.Level >= maxlevel)
 		{
-			SendClientMessage(conn, "Seu nivel é insuficiente.");
+			SendClientMessage(conn, "Seu nivel a insuficiente.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -10539,13 +10615,13 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	{
 		if (pMob[conn].extra.QuestInfo.Mortal.bencao)
 		{
-			SendClientMessage(conn, "Você já completou essa quest!");
+			SendClientMessage(conn, "Voca ja completou essa quest!");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
 		if (pMob[conn].extra.ClassMaster != MORTAL)
 		{
-			SendClientMessage(conn, "Sua classe atual não é permitida.");
+			SendClientMessage(conn, "Sua classe atual nao a permitida.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -10555,7 +10631,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 
 		if (pMob[conn].MOB.CurrentScore.Level < minlevel || pMob[conn].MOB.CurrentScore.Level >= maxlevel)
 		{
-			SendClientMessage(conn, "Seu nivel é insuficiente.");
+			SendClientMessage(conn, "Seu nivel a insuficiente.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -10606,12 +10682,12 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	}
 
 #pragma endregion
-#pragma region Baú Novato
-	if (item->sIndex == 5644) // Baú Novato
+#pragma region Baa Novato
+	if (item->sIndex == 5644) // Baa Novato
 	{
 		int x = 0;
 		int invfree = 0;
-		// Random para buscar e verificar os slots do inventário. 
+		// Random para buscar e verificar os slots do inventario. 
 		for (x = 0; x < pMob[conn].MaxCarry; x++)
 		{
 			if (pMob[conn].MOB.Carry[x].sIndex == 0)
@@ -10619,7 +10695,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		if (invfree < 5)
 		{
-			SendClientMessage(conn, "Seu inventário está cheio.");
+			SendClientMessage(conn, "Seu inventario esta cheio.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -10653,12 +10729,12 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region Forsa PT 300 // Baú Novato
+#pragma region Forsa PT 300 // Baa Novato
 	if (item->sIndex == 5611)
 	{
 		pUser[conn].Donate += 300;
 
-		SendMsgExp(conn, "Você ativou 300 de Donate.", TNColor::GoldenClaro, false);
+		SendMsgExp(conn, "Voca ativou 300 de Donate.", TNColor::GoldenClaro, false);
 
 		if (amount > 1)
 			BASE_SetItemAmount(item, amount - 1);
@@ -10673,7 +10749,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	}
 #pragma endregion
 
-#pragma region Água das Fadas
+#pragma region agua das Fadas
 	if (item->sIndex == 3367)
 	{
 		if (pMob[conn].MOB.Equip[13].sIndex == 0)
@@ -10714,7 +10790,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		{
 			if (CuboN.pRoom >= 6)
 			{
-				SendMsgExp(conn, "Esta quest atingiu o limite máximo de jogadores!", TNColor::Default, false);
+				SendMsgExp(conn, "Esta quest atingiu o limite maximo de jogadores!", TNColor::Default, false);
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}
@@ -10774,7 +10850,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			g_pItemList[pMob[conn].MOB.Equip[1].sIndex].nPos == 3840 ||
 			g_pItemList[pMob[conn].MOB.Equip[1].sIndex].nPos == 2048)
 		{
-			SendClientMessage(conn, "Não é possivel utilizar nesses itens.");
+			SendClientMessage(conn, "Nao a possivel utilizar nesses itens.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -10808,7 +10884,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		SendEmotion(conn, 14, 3);
 		return;
 	}
-#pragma region >> Baú de Cythera
+#pragma region >> Baa de Cythera
 	if (item->sIndex == 5627)
 	{
 		int rand_ = rand() % 100;
@@ -10880,7 +10956,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		return;
 	}
 #pragma endregion
-#pragma region >> Baú de Amuleto Arcano
+#pragma region >> Baa de Amuleto Arcano
 	if (item->sIndex == 5633)
 	{
 		int rand_ = rand() % 100;
@@ -11905,7 +11981,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	{
 		int x = 0;
 		int invfree = 0;
-		// Random para buscar e verificar os slots do inventário. 
+		// Random para buscar e verificar os slots do inventario. 
 		for (x = 0; x < pMob[conn].MaxCarry; x++)
 		{
 			if (pMob[conn].MOB.Carry[x].sIndex == 0)
@@ -11913,7 +11989,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		if (invfree < 2)
 		{
-			SendClientMessage(conn, "Seu inventário está cheio.");
+			SendClientMessage(conn, "Seu inventario esta cheio.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -11995,7 +12071,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	{
 		int x = 0;
 		int invfree = 0;
-		// Random para buscar e verificar os slots do inventário. 
+		// Random para buscar e verificar os slots do inventario. 
 		for (x = 0; x < pMob[conn].MaxCarry; x++)
 		{
 			if (pMob[conn].MOB.Carry[x].sIndex == 0)
@@ -12003,7 +12079,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		if (invfree < 2)
 		{
-			SendClientMessage(conn, "Seu inventário está cheio.");
+			SendClientMessage(conn, "Seu inventario esta cheio.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -12111,7 +12187,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	{
 		int x = 0;
 		int invfree = 0;
-		// Random para buscar e verificar os slots do inventário. 
+		// Random para buscar e verificar os slots do inventario. 
 		for (x = 0; x < pMob[conn].MaxCarry; x++)
 		{
 			if (pMob[conn].MOB.Carry[x].sIndex == 0)
@@ -12119,7 +12195,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		if (invfree < 2)
 		{
-			SendClientMessage(conn, "Seu inventário está cheio.");
+			SendClientMessage(conn, "Seu inventario esta cheio.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -12205,7 +12281,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	{
 		int x = 0;
 		int invfree = 0;
-		// Random para buscar e verificar os slots do inventário. 
+		// Random para buscar e verificar os slots do inventario. 
 		for (x = 0; x < pMob[conn].MaxCarry; x++)
 		{
 			if (pMob[conn].MOB.Carry[x].sIndex == 0)
@@ -12213,7 +12289,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		if (invfree < 2)
 		{
-			SendClientMessage(conn, "Seu inventário está cheio.");
+			SendClientMessage(conn, "Seu inventario esta cheio.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -12274,7 +12350,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		SendEmotion(conn, 100, rand() % 5);
 		int x = 0;
 		int invfree = 0;
-		// Random para buscar e verificar os slots do inventário. 
+		// Random para buscar e verificar os slots do inventario. 
 		for (x = 0; x < pMob[conn].MaxCarry; x++)
 		{
 			if (pMob[conn].MOB.Carry[x].sIndex == 0)
@@ -12282,7 +12358,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		if (invfree < 2)
 		{
-			SendClientMessage(conn, "Seu inventário está cheio.");
+			SendClientMessage(conn, "Seu inventario esta cheio.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -12354,7 +12430,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	{
 		int x = 0;
 		int invfree = 0;
-		// Random para buscar e verificar os slots do inventário. 
+		// Random para buscar e verificar os slots do inventario. 
 		for (x = 0; x < pMob[conn].MaxCarry; x++)
 		{
 			if (pMob[conn].MOB.Carry[x].sIndex == 0)
@@ -12362,7 +12438,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		if (invfree < 2)
 		{
-			SendClientMessage(conn, "Seu inventário está cheio.");
+			SendClientMessage(conn, "Seu inventario esta cheio.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -12413,7 +12489,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 #pragma region
 	if (item->sIndex == 3392)
 	{
-		SendClientMessage(conn, "Não permitido o uso do pesa individual");
+		SendClientMessage(conn, "Nao permitido o uso do pesa individual");
 		SendItem(conn, m->SourType, m->SourPos, &pMob[conn].MOB.Carry[m->SourPos]);
 
 	}
@@ -12421,7 +12497,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 #pragma region
 	if (item->sIndex == 3326)
 	{
-		SendClientMessage(conn, "Não permitido o uso do pesa Grupo");
+		SendClientMessage(conn, "Nao permitido o uso do pesa Grupo");
 		SendItem(conn, m->SourType, m->SourPos, &pMob[conn].MOB.Carry[m->SourPos]);
 
 	}
@@ -12434,7 +12510,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	{
 		int x = 0;
 		int invfree = 0;
-		// Random para buscar e verificar os slots do inventário. 
+		// Random para buscar e verificar os slots do inventario. 
 		for (x = 0; x < pMob[conn].MaxCarry; x++)
 		{
 			if (pMob[conn].MOB.Carry[x].sIndex == 0)
@@ -12442,7 +12518,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		if (invfree < 2)
 		{
-			SendClientMessage(conn, "Seu inventário está cheio.");
+			SendClientMessage(conn, "Seu inventario esta cheio.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -12521,7 +12597,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	{
 		int x = 0;
 		int invfree = 0;
-		// Random para buscar e verificar os slots do inventário. 
+		// Random para buscar e verificar os slots do inventario. 
 		for (x = 0; x < pMob[conn].MaxCarry; x++)
 		{
 			if (pMob[conn].MOB.Carry[x].sIndex == 0)
@@ -12529,7 +12605,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		if (invfree < 2)
 		{
-			SendClientMessage(conn, "Seu inventário está cheio.");
+			SendClientMessage(conn, "Seu inventario esta cheio.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -12592,7 +12668,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	{
 		int x = 0;
 		int invfree = 0;
-		// Random para buscar e verificar os slots do inventário. 
+		// Random para buscar e verificar os slots do inventario. 
 		for (x = 0; x < pMob[conn].MaxCarry; x++)
 		{
 			if (pMob[conn].MOB.Carry[x].sIndex == 0)
@@ -12600,7 +12676,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		if (invfree < 2)
 		{
-			SendClientMessage(conn, "Seu inventário está cheio.");
+			SendClientMessage(conn, "Seu inventario esta cheio.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -12679,7 +12755,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	{
 		int x = 0;
 		int invfree = 0;
-		// Random para buscar e verificar os slots do inventário. 
+		// Random para buscar e verificar os slots do inventario. 
 		for (x = 0; x < pMob[conn].MaxCarry; x++)
 		{
 			if (pMob[conn].MOB.Carry[x].sIndex == 0)
@@ -12687,7 +12763,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		if (invfree < 2)
 		{
-			SendClientMessage(conn, "Seu inventário está cheio.");
+			SendClientMessage(conn, "Seu inventario esta cheio.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -12731,7 +12807,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		else if (rand_ <= 50)
 		{
-			Item.sIndex = 661;//ank da justiça
+			Item.sIndex = 661;//ank da justiaa
 			Item.stEffect[0].cEffect = 43; //efeito REF
 			Item.stEffect[0].cValue = 0; //valor
 			Item.stEffect[1].cEffect = 70; //efeito REF
@@ -12740,7 +12816,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		else if (rand_ <= 60)
 		{
-			Item.sIndex = 661;// ank da justiça
+			Item.sIndex = 661;// ank da justiaa
 			Item.stEffect[0].cEffect = 43; //efeito REF
 			Item.stEffect[0].cValue = 0; //valor
 			Item.stEffect[1].cEffect = 60; //efeito REF
@@ -12793,7 +12869,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 	{
 		int x = 0;
 		int invfree = 0;
-		// Random para buscar e verificar os slots do inventário. 
+		// Random para buscar e verificar os slots do inventario. 
 		for (x = 0; x < pMob[conn].MaxCarry; x++)
 		{
 			if (pMob[conn].MOB.Carry[x].sIndex == 0)
@@ -12801,7 +12877,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 		}
 		if (invfree < 2)
 		{
-			SendClientMessage(conn, "Seu inventário está cheio.");
+			SendClientMessage(conn, "Seu inventario esta cheio.");
 			SendItem(conn, m->SourType, m->SourPos, item);
 			return;
 		}
@@ -13208,6 +13284,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			pMob[conn].MOB.Equip[6].stEffect[0].cEffect = 116; //efeito REF
 			SendClientMessage(conn, "Cor adicionada com sucesso");
 			SendItem(conn, ITEM_PLACE_EQUIP, 6, &pMob[conn].MOB.Equip[6]);
+			SendEquip(conn, 0);
 		}
 		SendEtc(conn);
 		if (amount > 1)
@@ -13238,6 +13315,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			pMob[conn].MOB.Equip[6].stEffect[0].cEffect = 117; //efeito REF
 			SendClientMessage(conn, "Cor adicionada com sucesso");
 			SendItem(conn, ITEM_PLACE_EQUIP, 6, &pMob[conn].MOB.Equip[6]);
+			SendEquip(conn, 0);
 		}
 		SendEtc(conn);
 		if (amount > 1)
@@ -13270,6 +13348,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 				; //efeito REF
 			SendClientMessage(conn, "Cor adicionada com sucesso");
 			SendItem(conn, ITEM_PLACE_EQUIP, 6, &pMob[conn].MOB.Equip[6]);
+			SendEquip(conn, 0);
 		}
 		SendEtc(conn);
 		if (amount > 1)
@@ -13300,6 +13379,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			pMob[conn].MOB.Equip[6].stEffect[0].cEffect = 119; //efeito REF
 			SendClientMessage(conn, "Cor adicionada com sucesso");
 			SendItem(conn, ITEM_PLACE_EQUIP, 6, &pMob[conn].MOB.Equip[6]);
+			SendEquip(conn, 0);
 		}
 		SendEtc(conn);
 		if (amount > 1)
@@ -13329,8 +13409,10 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			pMob[conn].MOB.Equip[6].sIndex >= 3551 || pMob[conn].MOB.Equip[6].sIndex >= 3800)
 		{
 			pMob[conn].MOB.Equip[6].stEffect[0].cEffect = 120; //efeito REF
+			pMob[conn].MOB.Equip[6].stEffect[0].cValue = 100; // TESTE intensidade (solido)
 			SendClientMessage(conn, "Cor adicionada com sucesso");
 			SendItem(conn, ITEM_PLACE_EQUIP, 6, &pMob[conn].MOB.Equip[6]);
+			SendEquip(conn, 0);
 		}
 		SendEtc(conn);
 		if (amount > 1)
@@ -13362,6 +13444,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			pMob[conn].MOB.Equip[6].stEffect[0].cEffect = 121; //efeito REF
 			SendClientMessage(conn, "Cor adicionada com sucesso");
 			SendItem(conn, ITEM_PLACE_EQUIP, 6, &pMob[conn].MOB.Equip[6]);
+			SendEquip(conn, 0);
 		}
 		SendEtc(conn);
 		if (amount > 1)
@@ -13393,6 +13476,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			pMob[conn].MOB.Equip[6].stEffect[0].cEffect = 122; //efeito REF
 			SendClientMessage(conn, "Cor adicionada com sucesso");
 			SendItem(conn, ITEM_PLACE_EQUIP, 6, &pMob[conn].MOB.Equip[6]);
+			SendEquip(conn, 0);
 		}
 		SendEtc(conn);
 		if (amount > 1)
@@ -13423,6 +13507,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			pMob[conn].MOB.Equip[6].stEffect[0].cEffect = 123; //efeito REF
 			SendClientMessage(conn, "Cor adicionada com sucesso");
 			SendItem(conn, ITEM_PLACE_EQUIP, 6, &pMob[conn].MOB.Equip[6]);
+			SendEquip(conn, 0);
 		}
 		SendEtc(conn);
 		if (amount > 1)
@@ -13453,6 +13538,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			pMob[conn].MOB.Equip[6].stEffect[0].cEffect = 124; //efeito REF
 			SendClientMessage(conn, "Cor adicionada com sucesso");
 			SendItem(conn, ITEM_PLACE_EQUIP, 6, &pMob[conn].MOB.Equip[6]);
+			SendEquip(conn, 0);
 		}
 		SendEtc(conn);
 		if (amount > 1)
@@ -13483,6 +13569,7 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 			pMob[conn].MOB.Equip[6].stEffect[0].cEffect = 125; //efeito REF
 			SendClientMessage(conn, "Cor adicionada com sucesso");
 			SendItem(conn, ITEM_PLACE_EQUIP, 6, &pMob[conn].MOB.Equip[6]);
+			SendEquip(conn, 0);
 		}
 		SendEtc(conn);
 		if (amount > 1)
@@ -14416,12 +14503,12 @@ void Exec_MSG_UseItem(int conn, char* pMsg)
 				break;
 			}
 			if (pUser[conn].Keys[i] == Traje) {
-				SendClientMessage(conn, "Esse Traje já foi utilizado");
+				SendClientMessage(conn, "Esse Traje ja foi utilizado");
 				SendItem(conn, m->SourType, m->SourPos, item);
 				break;
 			}
 			if (i == 15 && pUser[conn].Keys[i] != 0) {
-				SendClientMessage(conn, "Não há slots de trajes disponíveis");
+				SendClientMessage(conn, "Nao ha slots de trajes disponaveis");
 				SendItem(conn, m->SourType, m->SourPos, item);
 				return;
 			}

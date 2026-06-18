@@ -33,6 +33,27 @@ void RemoveMountTraje(int conn);
 bool MountTrajeBuy(int conn, int Index);
 void RequestTraje(int conn);
 
+enum ACCOUNT_STAFF_ROLE
+{
+	ACCOUNT_STAFF_NONE = 0,
+	ACCOUNT_STAFF_GM = 1,
+	ACCOUNT_STAFF_ADMIN = 2
+};
+
+// Cargos por conta, lidos ao vivo da pasta run do TMSrv.
+int GetAccountStaffRole(const char* account);
+bool IsAdminAccount(const char* account);
+bool IsGameMasterAccount(const char* account);
+bool CanUseStaffCharacterName(const char* account, const char* characterName);
+bool ApplyAccountStaffPrefix(const char* account, char* characterName);
+
+// ============================================================================
+// Cidade de gelo Nippleheim/Karden: 0 = DESABILITADA (em breve), 1 = habilitada.
+// REABILITAR portal de Noatun (JULIARZAN) + botao Painel D (Nipple): trocar para
+// 1 e recompilar o TMSrv. (O pergaminho 3437 tambem volta; pra vender, re-adicionar nas lojas.)
+// ============================================================================
+#define NIPPLEHEIM_HABILITADO 0
+
 int NumbGen(int Initial, int Final);
 void LoadEvent();
 void ReadServerConfigs();

@@ -6,6 +6,8 @@ void GameInterface::MainLoop(UIControl* Controller)
 	if (!Controller)
 		return;
 
+	AutoTradePreviewTick();
+
 	int sContexto = g_pInterface->SceneContext(); 
 
 	//if (Controller->Handle && Controller->ControlType == 12)// 12 é exclusivo pra texto

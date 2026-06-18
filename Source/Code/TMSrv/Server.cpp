@@ -84,8 +84,11 @@ char Keywords2[30][7] = {
 
 int cStoreItens[3][3][15][3] = {};
 
-extern int ExpBaseN[12] = {};
-extern int ExpBaseM[12] = {};
+// Divisores de XP por faixa de level (256-400) para MORTAL (N) e ARCH (M).
+// Usados em GetExpApply: ExpTotal = (exp*100)/ExpBaseX[i]. NUNCA podem ser 0,
+// senao o TMSrv crasha por divisao por zero (0xc0000094) ao matar mob.
+extern int ExpBaseN[12] = { 200, 220, 250, 300, 350, 400, 500, 600, 700, 800, 900, 1000 };
+extern int ExpBaseM[12] = { 200, 400, 800, 1200, 1600, 2000, 2400, 2800, 7600, 9000, 10000, 12000 };
 extern int ExpCele[24] = {};
 int ArchDiv;
 int CeleDiv;
@@ -1553,7 +1556,7 @@ void BASE_ReadQuestDiaria()
 
 	if (fp == NULL)
 	{
-		MessageBoxA(NULL, "N�o foi poss�vel carregar o arquivo 'QuestDiaria.txt'", "TMSRV", MB_OK);
+		MessageBoxA(NULL, "Nao foi possavel carregar o arquivo 'QuestDiaria.txt'", "TMSRV", MB_OK);
 
 		return;
 	}
@@ -2796,6 +2799,41 @@ void SetItemBonus(STRUCT_ITEM *Dest, int Level, int a3, int DropBonus)
 			Dest->stEffect[2].cValue = rand() % 256;
 		}
 	}
+
+	// === Peneira de raridade dos adicionais de TOPO em armas (tier 6 / tier 7) ===
+	// Adicional de arma = base * tier (Aumento de Dano base 9, Ataque Magico base 4).
+	// Tier 6 (54 dano / 24% magico) fica ~1% e tier 7 (63 dano / 28% magico) ~0,1%.
+	// So mexe em EF_DAMAGE/EF_MAGIC dos slots 1 e 2 de ARMAS; nao altera o nivel-gate
+	// (mob fraco nao chega no tier alto, entao nem entra aqui). Nunca faz upgrade.
+	if (nPos == 64 || nPos == 192)
+	{
+		for (int s = 1; s <= 2; ++s)
+		{
+			int ef = Dest->stEffect[s].cEffect;
+			int base = (ef == EF_DAMAGE) ? 9 : (ef == EF_MAGIC) ? 4 : 0;
+			if (base == 0)
+				continue;
+
+			int val = (unsigned char)Dest->stEffect[s].cValue;
+			int tier = val / base;
+			if (tier < 6)
+				continue; // tier 5 ou menos: deixa como esta
+
+			int roll = rand() % 1000; // 0..999
+			int newTier;
+			if (tier >= 7 && roll == 0)
+				newTier = 7; // ~0,1%
+			else if (roll < 10)
+				newTier = 6; // ~1%
+			else
+				newTier = 5; // rebaixa o resto
+
+			if (newTier > tier)
+				newTier = tier; // seguranca: nunca sobe de tier
+
+			Dest->stEffect[s].cValue = (unsigned char)(base * newTier);
+		}
+	}
 }
 
 void SetItemBonus2(STRUCT_ITEM *Dest)
@@ -2831,7 +2869,7 @@ void SetItemBonus2(STRUCT_ITEM *Dest)
 		Dest->stEffect[2].cEffect = g_pBonusValue3[_rand][2];
 		Dest->stEffect[2].cValue = g_pBonusValue3[_rand][3];
 	}
-	//Peito cal�a
+	//Peito calaa
 	if (nPos == 4 || nPos == 8)
 	{
 		int _rand = rand() % 48;
@@ -2965,7 +3003,7 @@ void SetItemBonus2(STRUCT_ITEM *Dest)
 	}
 
 
-	//Peito cal�a
+	//Peito calaa
 	if(nPos == 4 || nPos == 8)
 	{
 		if(Dest->stEffect[0].cEffect == EF_SANC)
@@ -3750,6 +3788,37 @@ int GenerateSummon(int conn, int SummonID, STRUCT_ITEM* sItem, int Num)
 	if (Leader <= 0)
 		Leader = conn;
 
+	for (int i = 0; i < MAX_PARTY; i++)
+	{
+		int partyconn = pMob[Leader].PartyList[i];
+
+		if (partyconn <= 0)
+			continue;
+
+		if (partyconn >= MAX_MOB)
+		{
+			pMob[Leader].PartyList[i] = 0;
+			continue;
+		}
+
+		if (partyconn < MAX_USER)
+			continue;
+
+		if (pMob[partyconn].Mode == MOB_EMPTY)
+		{
+			pMob[Leader].PartyList[i] = 0;
+			continue;
+		}
+
+		if (pMob[partyconn].Summoner == conn &&
+			(pMob[partyconn].IsSummon || pMob[partyconn].MOB.Clan == 4) &&
+			pMob[partyconn].MOB.CurrentScore.Hp <= 0)
+		{
+			DeleteMob(partyconn, 1);
+			pMob[Leader].PartyList[i] = 0;
+		}
+	}
+
 	int MobEmpty = GetEmptyNPCMob();
 
 	if (MobEmpty == 0)
@@ -4036,7 +4105,7 @@ int GenerateSummon(int conn, int SummonID, STRUCT_ITEM* sItem, int Num)
 		pMob[MobEmpty].IsSummon = 1; // Crias/Outros
 
 		if (SummonID >= 0 && SummonID <= 7)
-			pMob[MobEmpty].IsSummon = 2; // Evoca��es
+			pMob[MobEmpty].IsSummon = 2; // Evocaaaes
 	}
 	return 1;
 }
@@ -4169,6 +4238,117 @@ int CreateMob(char* MobName, int PosX, int PosY, char* folder, int Type)
 	GridMulticast(px, py, (MSG_STANDARD*)&sm, 0);
 
 	return TRUE;
+}
+
+// Direcao fixa de NPC lida de npc-direction.txt (formato: "Nome do Mob=numero").
+// Editar o arquivo e reiniciar o TMSrv aplica sem recompilar. Se o arquivo nao
+// existir ou nao tiver o nome, usa a direcao padrao do codigo.
+struct NpcDirectionEntry
+{
+	char name[64];
+	int direction;
+};
+
+static NpcDirectionEntry g_npcDirectionConfig[64];
+static int g_npcDirectionCount = 0;
+static bool g_npcDirectionLoaded = false;
+
+static void TrimTrailingSpaces(char* text)
+{
+	int len = (int)strlen(text);
+	while (len > 0 && (text[len - 1] == ' ' || text[len - 1] == '\t' ||
+		text[len - 1] == '\r' || text[len - 1] == '\n'))
+	{
+		text[len - 1] = '\0';
+		len--;
+	}
+}
+
+static void LoadNpcDirectionConfig()
+{
+	g_npcDirectionLoaded = true;
+	g_npcDirectionCount = 0;
+
+	FILE* file = fopen("npc-direction.txt", "r");
+	if (file == NULL)
+		return;
+
+	const int maxEntries = (int)(sizeof(g_npcDirectionConfig) / sizeof(g_npcDirectionConfig[0]));
+	char line[128];
+
+	while (fgets(line, sizeof(line), file) != NULL && g_npcDirectionCount < maxEntries)
+	{
+		if (line[0] == '/' || line[0] == '#' || line[0] == '\r' || line[0] == '\n')
+			continue;
+
+		char name[64] = { 0 };
+		int direction = 0;
+		if (sscanf(line, "%63[^=]=%d", name, &direction) != 2)
+			continue;
+
+		TrimTrailingSpaces(name);
+		if (name[0] == '\0')
+			continue;
+
+		strncpy(g_npcDirectionConfig[g_npcDirectionCount].name, name, 63);
+		g_npcDirectionConfig[g_npcDirectionCount].name[63] = '\0';
+		g_npcDirectionConfig[g_npcDirectionCount].direction = direction;
+		g_npcDirectionCount++;
+	}
+
+	fclose(file);
+}
+
+static int GetConfiguredNpcDirection(const char* mobName, int fallback)
+{
+	if (!g_npcDirectionLoaded)
+		LoadNpcDirectionConfig();
+
+	for (int i = 0; i < g_npcDirectionCount; i++)
+	{
+		if (strcmp(g_npcDirectionConfig[i].name, mobName) == 0)
+			return g_npcDirectionConfig[i].direction;
+	}
+
+	return fallback;
+}
+
+int GetFixedNpcDirection(const char* mobName)
+{
+	int fallback = 0;
+
+	if (strcmp(mobName, "EVENTO HIT") == 0)
+		fallback = 4;
+	else if (strcmp(mobName, "Guarda Real I") == 0 ||
+		strcmp(mobName, "Guarda Real II") == 0 ||
+		strcmp(mobName, "Guarda Real III") == 0 ||
+		strcmp(mobName, "Guarda Real IV") == 0 ||
+		strcmp(mobName, "Guarda Real V") == 0)
+		fallback = 4;
+
+	return GetConfiguredNpcDirection(mobName, fallback);
+}
+
+static void ApplyFixedNpcDirection(CMob& mob)
+{
+	// NPC de Ranking: marca como merchant para o cliente permitir o clique
+	// (o handler de REQShopList intercepta pelo nome e abre o ranking).
+	if (strcmp(mob.MOB.MobName, "Ranking") == 0)
+	{
+		mob.MOB.Merchant = 1;
+		mob.MOB.BaseScore.Merchant = (mob.MOB.BaseScore.Merchant & 0xF0) | 1;
+		mob.MOB.CurrentScore.Merchant = (mob.MOB.CurrentScore.Merchant & 0xF0) | 1;
+	}
+
+	int direction = GetFixedNpcDirection(mob.MOB.MobName);
+
+	if (direction <= 0)
+		return;
+
+	const unsigned char facing = (unsigned char)((direction & 0x0F) << 4);
+	mob.MOB.CurrentScore.Merchant =
+		(mob.MOB.CurrentScore.Merchant & 0x0F) | facing;
+	mob.MOB.CurrentScore.Direction = (unsigned char)(direction & 0x0F);
 }
 
 void GenerateMob(int index, int PosX, int PosY)
@@ -4343,6 +4523,7 @@ void GenerateMob(int index, int PosX, int PosY)
 
 	pMob[tmob].GetCurrentScore(MAX_USER);
 	pMob[tmob].MOB.CurrentScore.Hp = pMob[tmob].MOB.CurrentScore.MaxHp;
+	ApplyFixedNpcDirection(pMob[tmob]);
 
 	if (NewbieEventServer && pMob[tmob].MOB.CurrentScore.Level < 120)
 		pMob[tmob].MOB.CurrentScore.Hp = 3 * pMob[tmob].MOB.CurrentScore.Hp / 4;
@@ -4715,7 +4896,7 @@ BOOL WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
 	if (!ret)
 	{
-		//Log("erro,n�o foi possivel iniciar a seguinte fun��o : WSAInitialize", "-system", 0);
+		//Log("erro,nao foi possivel iniciar a seguinte funaao : WSAInitialize", "-system", 0);
 
 		return FALSE;
 	}
@@ -4743,7 +4924,7 @@ BOOL WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 		fclose(fp);
 	}
 	else
-		MessageBox(hWndMain, "N�o foi possivel encontrar o arquivo LocalIP.txt", "Erro ao iniciar", NULL);
+		MessageBox(hWndMain, "Nao foi possivel encontrar o arquivo LocalIP.txt", "Erro ao iniciar", NULL);
 
 	int r1 = 0, r2 = 0, r3 = 0, r4 = 0;
 
@@ -4776,7 +4957,7 @@ BOOL WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
 	if (DBServerAddress[0] == 0)
 	{
-		MessageBox(hWndMain, "N�o foi possivel pegar o ServerGroup. LocalIP.txt / ServerList.txt", "Erro ao iniciar", MB_OK | MB_SYSTEMMODAL);
+		MessageBox(hWndMain, "Nao foi possivel pegar o ServerGroup. LocalIP.txt / ServerList.txt", "Erro ao iniciar", MB_OK | MB_SYSTEMMODAL);
 
 		return TRUE;
 	}
@@ -4789,8 +4970,8 @@ BOOL WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
 	if (ret == NULL)
 	{
-		Log("erro, N�o foi possivel se conectar a DBServer", "-system", 0);
-		MessageBox(hWndMain, "N�o foi possivel se conectar a DBServer", "Erro ao iniciar", NULL);
+		Log("erro, Nao foi possivel se conectar a DBServer", "-system", 0);
+		MessageBox(hWndMain, "Nao foi possivel se conectar a DBServer", "Erro ao iniciar", NULL);
 
 		return FALSE;
 	}
@@ -4832,7 +5013,7 @@ BOOL WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
 		if (ret == NULL)
 		{
-			Log("erro, N�o foi possivel se conectar na BIServer", "-system", 0);
+			Log("erro, Nao foi possivel se conectar na BIServer", "-system", 0);
 			BILLING = 0;
 		}
 		else
@@ -5077,7 +5258,7 @@ LONG APIENTRY MainWndProc(HWND hWnd, UINT message, UINT wParam, LONG lParam)
 			}
 
 			Sleep(200);
-			PostQuitMessage(NULL);
+			Log("reconnect DB ok.", "-system", 0);
 			return TRUE;
 		}
 
@@ -5110,7 +5291,7 @@ LONG APIENTRY MainWndProc(HWND hWnd, UINT message, UINT wParam, LONG lParam)
 				return TRUE;
 
 			}
-			PostQuitMessage(NULL);
+			Log("reconnect DB ok.", "-system", 0);
 			return TRUE;
 
 		}
@@ -5253,11 +5434,19 @@ LONG APIENTRY MainWndProc(HWND hWnd, UINT message, UINT wParam, LONG lParam)
 
 			int ret = pUser[User].AcceptUser(ListenSocket.Sock);
 
+			if (ret == FALSE)
+			{
+				pUser[User].CloseUser();
+				break;
+			}
+
+			pUser[User].LastReceiveTime = SecCounter;
+
 #pragma region Bloqueio de excesso de tentativas por IP
-			int DEFAULT_BLOCKIP = 5; // consideramos 3 segundos aqui, agora � pra ser 2 minutos
+			int DEFAULT_BLOCKIP = 5; // consideramos 3 segundos aqui, agora a pra ser 2 minutos
 			TMP_BLOCKIP bIp = TMP_BLOCKIP(pUser[User].IP, DEFAULT_BLOCKIP);
 
-			// verificamos se o usu�rio j� est� na lista, se ele estiver, a conex�o ser� anulada e nada ser� processado pela dbsrv ou tmsrv.
+			// verificamos se o usuario ja esta na lista, se ele estiver, a conexao sera anulada e nada sera processado pela dbsrv ou tmsrv.
 			for (auto& i : g_pBlockIP)
 			{
 				if (i.IPAddress == bIp.IPAddress)
@@ -5268,7 +5457,7 @@ LONG APIENTRY MainWndProc(HWND hWnd, UINT message, UINT wParam, LONG lParam)
 			}
 
 
-			// adiciona o IP do usu�rio na lista para evitar com que requisite mais de uma conex�o em um curto periodo de tempo
+			// adiciona o IP do usuario na lista para evitar com que requisite mais de uma conexao em um curto periodo de tempo
 			g_pBlockIP.push_back(bIp);
 #pragma endregion
 
@@ -5383,7 +5572,7 @@ LONG APIENTRY MainWndProc(HWND hWnd, UINT message, UINT wParam, LONG lParam)
 	} break;
 	case WM_CLOSE:
 	{
-		if (MessageBox(hWndMain, "Voc� realmente deseja desligar o server?", "Aviso!!!", MB_ICONQUESTION | MB_YESNO) == IDNO)
+		if (MessageBox(hWndMain, "Voca realmente deseja desligar o server?", "Aviso!!!", MB_ICONQUESTION | MB_YESNO) == IDNO)
 			break;
 
 		if (BILLING != 0)
@@ -5547,10 +5736,10 @@ void LinkMountHp(int mobConn)
 	if (pUser[Summoner].Mode != USER_PLAY)
 		return;
 
-	int mountId = pMob[Summoner].MOB.Equip[14].sIndex - 2330;
+	int mountId = (pMob[Summoner].MOB.Equip[14].sIndex - 2330) % 30;
 	int mountFace = face - 315;
 
-	if ((face - 315) != mountId)
+	if (mountFace != mountId)
 		return;
 
 	int mountHpItem = pMob[Summoner].MOB.Equip[14].stEffect[0].sValue;
@@ -5596,6 +5785,9 @@ void ProcessAdultMount(int conn, int HpLost)
 
 	int MHp = MItem->stEffect[0].sValue;
 	int MHp2 = MItem->stEffect[0].sValue - HpLost;
+
+	if (MHp2 < 0)
+		MHp2 = 0;
 
 	if (MHp2 >= MMaxHp)
 		MHp2 = MMaxHp;
@@ -5755,12 +5947,18 @@ void RegenMob(int conn)
 			if (Mount->sIndex >= 2330 && Mount->sIndex < 2390 && Mount->stEffect[0].sValue > 0)
 			{
 				int Feed = Mount->stEffect[2].cEffect;
-				int MountDiv = Mount->sIndex - 2330 % 30;
+				int MountDiv = (Mount->sIndex - 2330) % 30;
 
-				if (MountDiv > 15)
-					Feed -= 4;
-				else
-					Feed -= 2;
+				bool RevigBuff = false;
+					for (int ia = 0; ia < MAX_AFFECT; ia++)
+						if (pMob[conn].Affect[ia].Type == 51) { RevigBuff = true; break; }
+
+					if (RevigBuff)
+						Feed = 100;
+					else if (MountDiv > 15)
+						Feed -= 4;
+					else
+						Feed -= 2;
 
 				if (Feed > 1)
 					Mount->stEffect[2].cEffect = Feed;
@@ -6070,7 +6268,7 @@ int  ProcessAffect(int idx)
 							goto LessAffect;
 						}*/
 #pragma endregion
-#pragma region Trov�o
+#pragma region Trovao
 				if (Type == 22)
 				{
 					int alvo1 = 0;
@@ -7505,7 +7703,7 @@ void SendItemagrupar(const int client, int itemID)
 	int i = 0;
 	int j = 0;
 
-	//Verificar espa�o no invent�rio
+	//Verificar espaao no inventario
 	for (x = 0; x < pMob[client].MaxCarry; x++)
 	{
 		if (pMob[client].MOB.Carry[x].sIndex == 0)
@@ -7544,7 +7742,7 @@ void SendItemagrupar(const int client, int itemID)
 			}
 
 		}
-		SendClientMessage(client, "Seu invent�rio est� cheio");
+		SendClientMessage(client, "Seu inventario esta cheio");
 
 		return;
 	}
@@ -7593,7 +7791,7 @@ void sendeitempremio(const int client, int itemID, int valor)
 	int x = 0;
 	int invfree = 0;
 
-	//Verificar espa�o no invent�rio
+	//Verificar espaao no inventario
 	for (x = 0; x < pMob[client].MaxCarry; x++)
 	{
 		if (pMob[client].MOB.Carry[x].sIndex == 0)
@@ -7602,7 +7800,7 @@ void sendeitempremio(const int client, int itemID, int valor)
 
 	if (invfree < 1)
 	{
-		SendClientMessage(client, "Seu invent�rio est� cheio");
+		SendClientMessage(client, "Seu inventario esta cheio");
 		pUser[client].TimeLojinha = 0;
 		return;
 	}
@@ -8283,7 +8481,7 @@ void DecideWinner0()
 
 	g_pGuildZone[i].ChallangeGuild = 0;
 
-	// Verifica��o para setar Noatum
+	// Verificaaao para setar Noatum
 	if (g_pGuildZone[1].ChargeGuild == g_pGuildZone[0].ChargeGuild && g_pGuildZone[2].ChargeGuild == g_pGuildZone[0].ChargeGuild && g_pGuildZone[3].ChargeGuild == g_pGuildZone[0].ChargeGuild)
 		g_pGuildZone[4].ChargeGuild = g_pGuildZone[0].ChargeGuild;
 }
@@ -8659,16 +8857,16 @@ void GuildProcess()
 				g_pGuildZone[i].Victory++;
 		}
 	}
-	//Diz para come�arem a esperar nas cidades (20h)
+	//Diz para comeaarem a esperar nas cidades (20h)
 	if (WeekMode == 0 && timeinfo->tm_wday == 0 && timeinfo->tm_hour == GuildHour)
 	{
 		SendNotice(g_pMessageStringTable[_NN_Guild_Battle_Notice1]);
 		WeekMode = 1;
 	}
-	//A guerra de Erion ir� come�ar em 3 minutos e Teleporta os Players (20:02)
+	//A guerra de Erion ira comeaar em 3 minutos e Teleporta os Players (20:02)
 	if (WeekMode == 1 && timeinfo->tm_wday == 0 && timeinfo->tm_hour == GuildHour && timeinfo->tm_min == 2)
 	{
-		SendNotice("A Guerra de Erion ir� come�ar em 3 minutos");
+		SendNotice("A Guerra de Erion ira comeaar em 3 minutos");
 		ClearGuildPKZone();
 		WeekMode = 2;
 		SetArenaDoor(STATE_LOCKED);
@@ -8706,10 +8904,10 @@ void GuildProcess()
 
 		GuildZoneReport();
 	}
-	//A guerra de Nipplehein ir� come�ar em 3 minutos e Teleporta os Players (20:17)
+	//A guerra de Nipplehein ira comeaar em 3 minutos e Teleporta os Players (20:17)
 	if (WeekMode == 1 && timeinfo->tm_wday == 0 && timeinfo->tm_hour == GuildHour && timeinfo->tm_min == 17)
 	{
-		SendNotice("A Guerra de Nipplehein ir� come�ar em 3 minutos");
+		SendNotice("A Guerra de Nipplehein ira comeaar em 3 minutos");
 		ClearGuildPKZone();
 		WeekMode = 2;
 		SetArenaDoor(STATE_LOCKED);
@@ -8747,10 +8945,10 @@ void GuildProcess()
 
 		GuildZoneReport();
 	}
-	//A guerra de Azran ir� come�ar em 3 minutos e Teleporta os Players (20:32)
+	//A guerra de Azran ira comeaar em 3 minutos e Teleporta os Players (20:32)
 	if (WeekMode == 1 && timeinfo->tm_wday == 0 && timeinfo->tm_hour == GuildHour && timeinfo->tm_min == 32)
 	{
-		SendNotice("A Guerra de Azran ir� come�ar em 3 minutos");
+		SendNotice("A Guerra de Azran ira comeaar em 3 minutos");
 		ClearGuildPKZone();
 		WeekMode = 2;
 		SetArenaDoor(STATE_LOCKED);
@@ -8788,10 +8986,10 @@ void GuildProcess()
 
 		GuildZoneReport();
 	}
-	//A guerra de Armia ir� come�ar em 3 minutos e Teleporta os Players (20:47)
+	//A guerra de Armia ira comeaar em 3 minutos e Teleporta os Players (20:47)
 	if (WeekMode == 1 && timeinfo->tm_wday == 0 && timeinfo->tm_hour == GuildHour && timeinfo->tm_min == 47)
 	{
-		SendNotice("A Guerra de Armia ir� come�ar em 3 minutos");
+		SendNotice("A Guerra de Armia ira comeaar em 3 minutos");
 		ClearGuildPKZone();
 		WeekMode = 2;
 		SetArenaDoor(STATE_LOCKED);
@@ -8971,7 +9169,7 @@ void GuildProcess()
 					}
 					else if (RvRBluePoint == RvRRedPoint)
 					{
-						SendNotice("Guerra de Reinos terminou em empate [Sem B�nus RVR]. ");
+						SendNotice("Guerra de Reinos terminou em empate [Sem Banus RVR]. ");
 						RvRBonus = 0;
 					}
 				}
@@ -9160,6 +9358,9 @@ void Log(char* str1, char* str2, unsigned int ip)
 	SetWindowText(hWndMain, LogTemp);
 }
 
+static const int AUTOTRADE_PROXY_GENERATE_INDEX = -9000;
+static const int AUTOTRADE_CARBUNKLE_FACE = 230;
+
 int  GetUserFromSocket(int Sock)
 {
 	if (Sock == 0)
@@ -9178,7 +9379,7 @@ int  GetEmptyUser(void)
 {
 	for (int i = 1; i < MAX_USER; i++)
 	{
-		if (pUser[i].Mode == USER_EMPTY)
+		if (pUser[i].Mode == USER_EMPTY && pMob[i].GenerateIndex != AUTOTRADE_PROXY_GENERATE_INDEX)
 			return i;
 	}
 
@@ -9247,6 +9448,293 @@ int  GetEmptyNPCMob()
 	//return 0;
 }
 
+int GetAutoTradeOwner(int target)
+{
+	if (target <= 0 || target >= MAX_MOB)
+		return 0;
+
+	if (target < MAX_USER)
+	{
+		if (pMob[target].Mode != MOB_EMPTY && pMob[target].GenerateIndex == AUTOTRADE_PROXY_GENERATE_INDEX)
+		{
+			int owner = pMob[target].Summoner;
+
+			if (owner <= 0 || owner >= MAX_USER)
+				return 0;
+
+			if (pUser[owner].Mode != USER_PLAY)
+				return 0;
+
+			if (pUser[owner].AutoTradeStoreMob != target)
+				return 0;
+
+			return owner;
+		}
+
+		if (pUser[target].Mode != USER_PLAY)
+			return 0;
+
+		if (pUser[target].TradeMode == 1)
+			return target;
+
+		return 0;
+	}
+
+	if (pMob[target].Mode == MOB_EMPTY)
+		return 0;
+
+	if (pMob[target].GenerateIndex != AUTOTRADE_PROXY_GENERATE_INDEX)
+		return 0;
+
+	int owner = pMob[target].Summoner;
+
+	if (owner <= 0 || owner >= MAX_USER)
+		return 0;
+
+	if (pUser[owner].Mode != USER_PLAY)
+		return 0;
+
+	if (pUser[owner].AutoTradeStoreMob != target)
+		return 0;
+
+	return owner;
+}
+
+int GetAutoTradeDisplayMob(int owner)
+{
+	if (owner <= 0 || owner >= MAX_USER)
+		return 0;
+
+	if (pUser[owner].Mode != USER_PLAY)
+		return 0;
+
+	int storeMob = pUser[owner].AutoTradeStoreMob;
+
+	if (storeMob > 0 && storeMob < MAX_MOB && GetAutoTradeOwner(storeMob) == owner)
+		return storeMob;
+
+	if (pUser[owner].TradeMode == 1)
+		return owner;
+
+	return 0;
+}
+
+bool IsAutoTradeActive(int conn)
+{
+	if (conn <= 0 || conn >= MAX_USER)
+		return false;
+
+	if (pUser[conn].Mode != USER_PLAY)
+		return false;
+
+	if (pUser[conn].TradeMode == 1)
+		return true;
+
+	int storeMob = pUser[conn].AutoTradeStoreMob;
+
+	if (storeMob <= 0 || storeMob >= MAX_MOB)
+		return false;
+
+	if (pMob[storeMob].Mode == MOB_EMPTY)
+		return false;
+
+	if (pMob[storeMob].GenerateIndex != AUTOTRADE_PROXY_GENERATE_INDEX)
+		return false;
+
+	if (pMob[storeMob].Summoner != conn)
+		return false;
+
+	return true;
+}
+
+bool IsAutoTradeCargoSlotLocked(int conn, int slot)
+{
+	if (conn <= 0 || conn >= MAX_USER)
+		return false;
+
+	if (slot < 0 || slot >= MAX_CARGO)
+		return false;
+
+	if (!IsAutoTradeActive(conn))
+		return false;
+
+	for (int i = 0; i < MAX_AUTOTRADE; i++)
+	{
+		if (pUser[conn].AutoTrade.CarryPos[i] == slot && pUser[conn].AutoTrade.Item[i].sIndex != 0)
+			return true;
+	}
+
+	return false;
+}
+
+int GetEmptyAutoTradeProxySlot(int owner)
+{
+	for (int i = MAX_USER - ADMIN_RESERV - 1; i > 0; i--)
+	{
+		if (i == owner)
+			continue;
+
+		if (pUser[i].Mode != USER_EMPTY)
+			continue;
+
+		if (pMob[i].Mode != MOB_EMPTY)
+			continue;
+
+		if (pMob[i].GenerateIndex == AUTOTRADE_PROXY_GENERATE_INDEX)
+			continue;
+
+		return i;
+	}
+
+	return 0;
+}
+
+void RemoveAutoTradeProxy(int conn)
+{
+	if (conn <= 0 || conn >= MAX_USER)
+		return;
+
+	int storeMob = pUser[conn].AutoTradeStoreMob;
+
+	pUser[conn].AutoTradeStoreMob = 0;
+	pUser[conn].AutoTradeStoreX = 0;
+	pUser[conn].AutoTradeStoreY = 0;
+
+	if (storeMob <= 0 || storeMob >= MAX_MOB)
+		return;
+
+	if (pMob[storeMob].GenerateIndex != AUTOTRADE_PROXY_GENERATE_INDEX || pMob[storeMob].Summoner != conn)
+		return;
+
+	int storeX = pMob[storeMob].TargetX;
+	int storeY = pMob[storeMob].TargetY;
+
+	if (storeX > 0 && storeY > 0)
+	{
+		MSG_RemoveMob sm;
+		memset(&sm, 0, sizeof(MSG_RemoveMob));
+		sm.Type = _MSG_RemoveMob;
+		sm.Size = sizeof(MSG_RemoveMob);
+		sm.ID = storeMob;
+		sm.RemoveType = 0;
+
+		GridMulticast(storeX, storeY, (MSG_STANDARD*)&sm, 0);
+		SendRemoveMob(conn, storeMob, 0, 1);
+	}
+
+	DeleteMob(storeMob, 2);
+
+	pMob[storeMob].GenerateIndex = -1;
+	pMob[storeMob].Summoner = 0;
+	pMob[storeMob].Leader = 0;
+}
+
+bool CreateAutoTradeProxy(int conn)
+{
+	if (conn <= 0 || conn >= MAX_USER)
+		return false;
+
+	if (pUser[conn].Mode != USER_PLAY || pMob[conn].Mode == MOB_EMPTY)
+		return false;
+
+	RemoveAutoTradeProxy(conn);
+
+	int storeMob = GetEmptyAutoTradeProxySlot(conn);
+
+	if (storeMob <= 0 || storeMob >= MAX_MOB)
+		return false;
+
+	int storeX = pMob[conn].TargetX;
+	int storeY = pMob[conn].TargetY;
+
+	if (!GetEmptyMobGrid(storeMob, &storeX, &storeY))
+		return false;
+
+	pMob[storeMob] = CMob();
+	memset(&pMob[storeMob].MOB, 0, sizeof(STRUCT_MOB));
+	memset(pMob[storeMob].Affect, 0, sizeof(pMob[storeMob].Affect));
+
+	strncpy(pMob[storeMob].MOB.MobName, pMob[conn].MOB.MobName, NAME_LENGTH);
+	pMob[storeMob].MOB.MobName[NAME_LENGTH - 1] = 0;
+
+	pMob[storeMob].MOB.Equip[0].sIndex = AUTOTRADE_CARBUNKLE_FACE;
+	pMob[storeMob].MOB.BaseScore.Level = 1;
+	pMob[storeMob].MOB.BaseScore.MaxHp = 1;
+	pMob[storeMob].MOB.BaseScore.Hp = 1;
+	pMob[storeMob].MOB.BaseScore.MaxMp = 1;
+	pMob[storeMob].MOB.BaseScore.Mp = 1;
+	pMob[storeMob].MOB.CurrentScore = pMob[storeMob].MOB.BaseScore;
+	pMob[storeMob].MOB.Guild = pMob[conn].MOB.Guild;
+	pMob[storeMob].MOB.GuildLevel = pMob[conn].MOB.GuildLevel;
+	pMob[storeMob].MOB.Clan = pMob[conn].MOB.Clan;
+
+	pMob[storeMob].Mode = MOB_IDLE;
+	pMob[storeMob].GenerateIndex = AUTOTRADE_PROXY_GENERATE_INDEX;
+	pMob[storeMob].Summoner = conn;
+	pMob[storeMob].Leader = conn;
+	pMob[storeMob].RouteType = 0;
+	pMob[storeMob].SegmentProgress = 0;
+	pMob[storeMob].SegmentListX[0] = storeX;
+	pMob[storeMob].SegmentListY[0] = storeY;
+	pMob[storeMob].SegmentX = storeX;
+	pMob[storeMob].SegmentY = storeY;
+	pMob[storeMob].TargetX = storeX;
+	pMob[storeMob].TargetY = storeY;
+	pMob[storeMob].LastX = storeX;
+	pMob[storeMob].LastY = storeY;
+	pMob[storeMob].MaxCarry = 0;
+
+	pMobGrid[storeY][storeX] = storeMob;
+
+	pUser[conn].AutoTradeStoreMob = storeMob;
+	pUser[conn].AutoTradeStoreX = storeX;
+	pUser[conn].AutoTradeStoreY = storeY;
+
+	MSG_CreateMobTrade sm;
+	memset(&sm, 0, sizeof(MSG_CreateMobTrade));
+	GetCreateMobTrade(storeMob, &sm);
+	GridMulticast(storeX, storeY, (MSG_STANDARD*)&sm, 0);
+
+	return true;
+}
+
+static void ClearAutoTradeStoreState(int conn)
+{
+	if (conn <= 0 || conn >= MAX_USER)
+		return;
+
+	memset(&pUser[conn].AutoTrade, 0, sizeof(MSG_SendAutoTrade));
+
+	for (int i = 0; i < MAX_AUTOTRADE; i++)
+		pUser[conn].AutoTrade.CarryPos[i] = -1;
+
+	RemoveAutoTradeProxy(conn);
+	pMob[conn].CheckLojinha = 0;
+
+	if (pUser[conn].Mode != USER_PLAY)
+	{
+		pUser[conn].TradeMode = 0;
+		return;
+	}
+
+	SendClientSignalParm(conn, ESCENE_FIELD, _MSG_AutoTradePreview, 0);
+	SendClientSignal(conn, conn, 900);
+
+	if (pUser[conn].TradeMode)
+	{
+		int posX = pMob[conn].TargetX;
+		int posY = pMob[conn].TargetY;
+
+		MSG_CreateMob sm;
+		memset(&sm, 0, sizeof(MSG_CreateMob));
+
+		GetCreateMob(conn, &sm);
+		GridMulticast(posX, posY, (MSG_STANDARD*)&sm, 0);
+
+		pUser[conn].TradeMode = 0;
+	}
+}
+
 int  GetUserByName(char *name)
 {
 	if (name[0] == '+')
@@ -9296,6 +9784,19 @@ void CloseUser(int conn)
 	if (conn < 0 || conn >= MAX_USER)
 		return;
 
+	int Mode = pUser[conn].Mode;
+
+	if (Mode == USER_ACCEPT)
+	{
+		pUser[conn].cSock.CloseSocket();
+		pMob[conn].Mode = USER_EMPTY;
+		pUser[conn].CloseUser();
+		return;
+	}
+
+	if (pUser[conn].Mode == USER_PLAY)
+		ClearAutoTradeStoreState(conn);
+
 	/*
 #pragma region Cubo N
 	if (((pMob[conn].TargetX / 128) == 13 && (pMob[conn].TargetY / 128) == 31) && CuboN.pRoom > 0) // Cubo N
@@ -9314,11 +9815,12 @@ void CloseUser(int conn)
 
 	pUser[conn].cSock.CloseSocket();
 
-	auto& pc = cSQL::instance();
-	sprintf(xQuery, "UPDATE accounts SET online = '%d' WHERE username = '%s' ", 0, pUser[conn].AccountName);
-	pc.wQuery(xQuery);
-
-	int Mode = pUser[conn].Mode;
+	if (pUser[conn].AccountName[0] != 0)
+	{
+		auto& pc = cSQL::instance();
+		sprintf(xQuery, "UPDATE accounts SET online = '%d' WHERE username = '%s' ", 0, pUser[conn].AccountName);
+		pc.wQuery(xQuery);
+	}
 
 	if (Mode && Mode != USER_ACCEPT)
 	{
@@ -9427,7 +9929,7 @@ void CloseUser(int conn)
 				{
 					if (pUser[conn].CharShortSkill[i] >= 0 || pUser[conn].CharShortSkill[i] <= 152)
 					{
-						// Prote��o Absoluta
+						// Proteaao Absoluta
 						if (pUser[conn].CharShortSkill[i] == 106) {
 							sm.ShortSkill[i] = 118;
 						}
@@ -9622,6 +10124,71 @@ void DeleteMob(int conn, int Type)
 
 }
 
+int RemoveOwnedSummons(int conn)
+{
+	if (conn <= 0 || conn >= MAX_USER)
+		return 0;
+
+	int removed = 0;
+
+	for (int i = 0; i < MAX_PARTY; i++)
+	{
+		int partyconn = pMob[conn].PartyList[i];
+		if (partyconn >= MAX_USER && partyconn < MAX_MOB &&
+			pMob[partyconn].Mode != MOB_EMPTY &&
+			(pMob[partyconn].Summoner == conn ||
+				(pMob[partyconn].Leader == conn && pMob[partyconn].IsSummon)))
+		{
+			DeleteMob(partyconn, 3);
+			removed++;
+		}
+
+		int evocation = pMob[conn].Evocations[i];
+		if (evocation >= MAX_USER && evocation < MAX_MOB &&
+			pMob[evocation].Mode != MOB_EMPTY &&
+			(pMob[evocation].Summoner == conn ||
+				(pMob[evocation].Leader == conn && pMob[evocation].IsSummon)))
+		{
+			DeleteMob(evocation, 3);
+			removed++;
+		}
+	}
+
+	for (int mob = MAX_USER; mob < MAX_MOB; mob++)
+	{
+		if (pMob[mob].Mode == MOB_EMPTY)
+			continue;
+
+		if (pMob[mob].Summoner == conn ||
+			(pMob[mob].Leader == conn && pMob[mob].IsSummon))
+		{
+			DeleteMob(mob, 3);
+			removed++;
+		}
+	}
+
+	for (int i = 0; i < MAX_PARTY; i++)
+	{
+		int partyconn = pMob[conn].PartyList[i];
+		if (partyconn >= MAX_USER && partyconn < MAX_MOB &&
+			(pMob[partyconn].Mode == MOB_EMPTY || pMob[partyconn].Summoner == conn ||
+				(pMob[partyconn].Leader == conn && pMob[partyconn].IsSummon)))
+		{
+			pMob[conn].PartyList[i] = 0;
+		}
+
+		int evocation = pMob[conn].Evocations[i];
+		if (evocation >= MAX_USER && evocation < MAX_MOB &&
+			(pMob[evocation].Mode == MOB_EMPTY || pMob[evocation].Summoner == conn ||
+				(pMob[evocation].Leader == conn && pMob[evocation].IsSummon)))
+		{
+			pMob[conn].Evocations[i] = 0;
+		}
+	}
+
+	return removed;
+}
+
 void SaveUser(int conn, int Export)
 {
 	MSG_DBSaveMob sm;
@@ -9716,7 +10283,7 @@ void SaveUser(int conn, int Export)
 		{
 			if (pUser[conn].CharShortSkill[i] == 106 || pUser[conn].CharShortSkill[i] == 109 || pUser[conn].CharShortSkill[i] == 114)
 			{
-				// Prote��o Absoluta
+				// Proteaao Absoluta
 				if (pUser[conn].CharShortSkill[i] == 106) {
 					sm.ShortSkill[i] = 118;
 				}
@@ -9773,6 +10340,7 @@ void CharLogOut(int conn)
 	}
 
 	pUser[conn].Ingame.MobDonateStore = FALSE;
+	ClearAutoTradeStoreState(conn);
 	pUser[conn].Mode = USER_CHARWAIT;
 
 	if (pUser[conn].IsBillConnect && CHARSELBILL == 0)
@@ -10064,24 +10632,7 @@ void RemoveTrade(int conn)
 	for (int i = 0; i < MAX_AUTOTRADE; i++)
 		pUser[conn].AutoTrade.CarryPos[i] = -1;
 
-	if (pUser[conn].Mode != USER_PLAY)
-		return;
-
-	SendClientSignal(conn, conn, 900);
-
-	if (pUser[conn].TradeMode)
-	{
-		int posX = pMob[conn].TargetX;
-		int posY = pMob[conn].TargetY;
-
-		MSG_CreateMob sm;
-		memset(&sm, 0, sizeof(MSG_CreateMob));
-
-		GetCreateMob(conn, &sm);
-		GridMulticast(posX, posY, (MSG_STANDARD*)&sm, 0);
-
-		pUser[conn].TradeMode = 0;
-	}
+	ClearAutoTradeStoreState(conn);
 }
 
 void RemoveParty(int conn)
@@ -11086,6 +11637,16 @@ void DoRemoveSamaritano(int conn)
 
 void DoTeleport(int mob, int x, int y)
 {
+#if !NIPPLEHEIM_HABILITADO
+	// Karden/Nippleheim desativado: redireciona player para Armia + aviso.
+	if (mob > 0 && mob < MAX_USER && pUser[mob].Mode == USER_PLAY &&
+		x >= 3450 && x <= 3900 && y >= 2650 && y <= 3300)
+	{
+		SendClientMessage(mob, "Karden sera habilitado em breve.");
+		x = 2100;
+		y = 2100;
+	}
+#endif
 	MSG_Action sm;
 	memset(&sm, 0, sizeof(MSG_Action));
 
@@ -12013,7 +12574,7 @@ void ReadLevelItemConfig(void)
 		Item.stEffect[2].cEffect = ival6;
 		Item.stEffect[2].cValue = ival7;
 
-		if (cls == 4 && type != 4)//Item para todas as classes mais n�o para todas build
+		if (cls == 4 && type != 4)//Item para todas as classes mais nao para todas build
 		{
 			LevelItem[0][type][level] = Item;
 			LevelItem[1][type][level] = Item;
@@ -12048,6 +12609,21 @@ void ReadLevelItemConfig(void)
 
 void DoItemLevel(int conn)
 {
+	if (conn <= 0 || conn >= MAX_USER)
+		return;
+
+	if (pUser[conn].Mode != USER_PLAY)
+		return;
+
+	int cls = pMob[conn].MOB.Class;
+	int level = pMob[conn].MOB.BaseScore.Level;
+
+	if (cls < 0 || cls >= 4)
+		return;
+
+	if (level < 0 || level >= 400)
+		return;
+
 	int type = 0;
 
 	if (pMob[conn].MOB.BaseScore.Str > pMob[conn].MOB.BaseScore.Int && pMob[conn].MOB.BaseScore.Str > pMob[conn].MOB.BaseScore.Dex && pMob[conn].MOB.BaseScore.Str > pMob[conn].MOB.BaseScore.Con)
@@ -12062,19 +12638,9 @@ void DoItemLevel(int conn)
 	else
 		type = 3;
 
-	if (pMob[conn].MOB.BaseScore.Str > pMob[conn].MOB.BaseScore.Int && pMob[conn].MOB.BaseScore.Str > pMob[conn].MOB.BaseScore.Dex && pMob[conn].MOB.BaseScore.Str > pMob[conn].MOB.BaseScore.Con)
-		type = 0;
+	STRUCT_ITEM* reward = &LevelItem[cls][type][level];
 
-	else if (pMob[conn].MOB.BaseScore.Int > pMob[conn].MOB.BaseScore.Str && pMob[conn].MOB.BaseScore.Int > pMob[conn].MOB.BaseScore.Dex && pMob[conn].MOB.BaseScore.Int > pMob[conn].MOB.BaseScore.Con)
-		type = 1;
-
-	else if (pMob[conn].MOB.BaseScore.Dex > pMob[conn].MOB.BaseScore.Str && pMob[conn].MOB.BaseScore.Dex > pMob[conn].MOB.BaseScore.Int && pMob[conn].MOB.BaseScore.Dex > pMob[conn].MOB.BaseScore.Con)
-		type = 2;
-
-	else
-		type = 3;
-
-	if (LevelItem[pMob[conn].MOB.Class][type][pMob[conn].MOB.BaseScore.Level].sIndex != 0)
+	if (reward->sIndex != 0)
 	{
 		for (int i = 0; i < MAX_CARGO - 2; i++)
 		{
@@ -12083,21 +12649,20 @@ void DoItemLevel(int conn)
 			if (retsour != 0)
 				continue;
 
-			pUser[conn].Cargo[i] = LevelItem[pMob[conn].MOB.Class][type][pMob[conn].MOB.BaseScore.Level];
+			pUser[conn].Cargo[i] = *reward;
 
-			SendItem(conn, ITEM_PLACE_CARGO, i, &LevelItem[pMob[conn].MOB.Class][type][pMob[conn].MOB.BaseScore.Level]);
+			SendItem(conn, ITEM_PLACE_CARGO, i, reward);
 
 			char cMsg[128];
 
-			sprintf_s(cMsg, "%s [%s]", g_pMessageStringTable[_NN_Item_Arrived], g_pItemList[LevelItem[pMob[conn].MOB.Class][type][pMob[conn].MOB.BaseScore.Level].sIndex].Name);
+			sprintf_s(cMsg, "%s [%s]", g_pMessageStringTable[_NN_Item_Arrived], g_pItemList[reward->sIndex].Name);
 
 			SendClientMessage(conn, cMsg);
 
 			char ItemCode[256];
 
 			//sprintf(temp, "tra,%s %d", pUser[conn].AccountName, i);
-			BASE_GetItemCode(&LevelItem[pMob[conn].MOB.Class][type][pMob[conn].MOB.BaseScore.Level], ItemCode);
-			strcat(temp, ItemCode);
+			BASE_GetItemCode(reward, ItemCode);
 			//Log(temp, "_lvlreward_", pUser[conn].IP);
 
 			if (pUser[conn].Mode == USER_SELCHAR)
@@ -12119,7 +12684,7 @@ void DoItemLevel(int conn)
 
 	if (pMob[conn].extra.ClassMaster == SCELESTIAL && pMob[conn].MOB.Equip[1].sIndex >= 3500 && pMob[conn].MOB.Equip[1].sIndex <= 3507)
 	{
-		if (pMob[conn].MOB.BaseScore.Level == 119 && pMob[conn].extra.QuestInfo.Celestial.Add120 == 0) // N�vel 120
+		if (pMob[conn].MOB.BaseScore.Level == 119 && pMob[conn].extra.QuestInfo.Celestial.Add120 == 0) // Navel 120
 		{
 			if (type1)
 			{
@@ -12158,7 +12723,7 @@ void DoItemLevel(int conn)
 				SendItem(conn, ITEM_PLACE_EQUIP, 1, &pMob[conn].MOB.Equip[1]);
 			}
 		}
-		if (pMob[conn].MOB.BaseScore.Level == 149 && pMob[conn].extra.QuestInfo.Celestial.Add150 == 0) // N�vel 150
+		if (pMob[conn].MOB.BaseScore.Level == 149 && pMob[conn].extra.QuestInfo.Celestial.Add150 == 0) // Navel 150
 		{
 			if (type1)
 			{
@@ -12197,7 +12762,7 @@ void DoItemLevel(int conn)
 				SendItem(conn, ITEM_PLACE_EQUIP, 1, &pMob[conn].MOB.Equip[1]);
 			}
 		}
-		if (pMob[conn].MOB.BaseScore.Level == 179 && pMob[conn].extra.QuestInfo.Celestial.Add180 == 0) // N�vel 180
+		if (pMob[conn].MOB.BaseScore.Level == 179 && pMob[conn].extra.QuestInfo.Celestial.Add180 == 0) // Navel 180
 		{
 			if (type1)
 			{
@@ -12236,7 +12801,7 @@ void DoItemLevel(int conn)
 				SendItem(conn, ITEM_PLACE_EQUIP, 1, &pMob[conn].MOB.Equip[1]);
 			}
 		}
-		if (pMob[conn].MOB.BaseScore.Level == 199 && pMob[conn].extra.QuestInfo.Celestial.Add200 == 0) // N�vel 200
+		if (pMob[conn].MOB.BaseScore.Level == 199 && pMob[conn].extra.QuestInfo.Celestial.Add200 == 0) // Navel 200
 		{
 			if (type1)
 			{
@@ -12320,9 +12885,9 @@ void SetCircletSubGod(int conn)
 
 bool PutAddOnItem(STRUCT_ITEM *Item, UINT8 ef1, UINT8 ef2, UINT8 efv1, UINT8 efv2)
 {
-	if (Item->sIndex < 0 || Item->sIndex > 6500) // Id inv�lido
+	if (Item->sIndex < 0 || Item->sIndex > 6500) // Id invalido
 		return false;
-	else if (ef1 && !efv1) // Diz que vai por add mas n�o tem o valor
+	else if (ef1 && !efv1) // Diz que vai por add mas nao tem o valor
 		return false;
 	else if (ef2 && !efv2) // '''''''''''''''''''''''''''''''''''''''
 		return false;
@@ -12336,7 +12901,7 @@ bool PutAddOnItem(STRUCT_ITEM *Item, UINT8 ef1, UINT8 ef2, UINT8 efv1, UINT8 efv
 
 	Sanc = GetItemSanc(Item);
 
-	// Zera os adds pr�vios do item
+	// Zera os adds pravios do item
 	memset(Item->stEffect, 0x0, 6);
 
 	INT8 value = 0;
@@ -12345,7 +12910,7 @@ bool PutAddOnItem(STRUCT_ITEM *Item, UINT8 ef1, UINT8 ef2, UINT8 efv1, UINT8 efv
 	{
 		value++;
 
-		// P�e a sanc anterior do item nele novamente
+		// Pae a sanc anterior do item nele novamente
 		SetItemSanc(Item, Sanc);
 	}
 	// Seta os novos adicionais
@@ -13658,7 +14223,7 @@ void ReadDirectory()
 {
 	if ((fReadDir = fopen("Account_Directory.txt", "r")) == NULL)
 	{
-		MessageBox(hWndMain, "N�o foi possivel abrir Account_Directory.txt!", "Erro ao iniciar", NULL);
+		MessageBox(hWndMain, "Nao foi possivel abrir Account_Directory.txt!", "Erro ao iniciar", NULL);
 		return;
 	}
 	else

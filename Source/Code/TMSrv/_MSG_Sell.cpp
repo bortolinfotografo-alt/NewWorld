@@ -37,7 +37,8 @@ void Exec_MSG_Sell(int conn, char* pMsg)
 		return;
 	}
 
-	if (pUser[conn].TradeMode && m->MyType == ITEM_PLACE_CARGO)
+	if ((pUser[conn].TradeMode && m->MyType == ITEM_PLACE_CARGO) ||
+		(m->MyType == ITEM_PLACE_CARGO && IsAutoTradeCargoSlotLocked(conn, m->MyPos)))
 	{
 		SendClientMessage(conn, g_pMessageStringTable[_NN_CantWhenAutoTrade]);
 		return;

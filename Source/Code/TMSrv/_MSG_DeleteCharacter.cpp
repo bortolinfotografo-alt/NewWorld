@@ -67,12 +67,6 @@ void Exec_MSG_DeleteCharacter(int conn, char *pMsg)
 		pUser[conn].Mode = USER_WAITDB;
 
 
-		auto& pc = cSQL::instance();
-
-		sprintf(xQuery, "DELETE FROM `characteres` WHERE `nick`= '%s' AND `slot_char`= '%d'", m->MobName, m->Slot);
-		pc.wQuery(xQuery);
-
-
 		DBServerSocket.SendOneMessage((char*)m, sizeof(MSG_DeleteCharacter));
 
 	}

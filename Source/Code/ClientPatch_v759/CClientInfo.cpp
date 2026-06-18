@@ -1,6 +1,245 @@
 #include "main.h"
 #include "UISlot.h"
 #define DROPLIST 3
+#define RANKING 5
+
+static int NormalizeRankingClass(int value)
+{
+	if (value < 0 || value > 3)
+		return 0;
+
+	return value;
+}
+
+static int NormalizeRankingEvolution(int value)
+{
+	if (value < 1 || value > 5)
+		return 1;
+
+	return value;
+}
+
+static const char* GetRankingClassName(int value)
+{
+	static const char* Classe[4] = { "TK", "FM", "BM", "HT" };
+	return Classe[NormalizeRankingClass(value)];
+}
+
+static const char* GetRankingEvolutionName(int value)
+{
+	static const char* Evolution[5] = { "Mortal", "Arch", "Celestial", "CelestialCS", "SubCelestial" };
+	return Evolution[NormalizeRankingEvolution(value) - 1];
+}
+
+static void SetRankingText(int Handle, const char* Text)
+{
+	auto Label = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(Handle);
+	if (Label)
+		Label->setConstString("%s", Text);
+}
+
+static void SetRankingPageText(int Page)
+{
+	auto Label = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(1919420);
+	if (Label)
+		Label->setConstString("%d", Page);
+}
+
+static void SetRankingRow(int Handle, int Position, const char* Name, int Value, int Evolution, int Classe)
+{
+	auto Label = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(Handle);
+	if (!Label)
+		return;
+
+	const char* SafeName = Name && Name[0] ? Name : "-";
+	Label->setConstString("%d. [%s][%d][%s][%s]",
+		Position, SafeName, Value, GetRankingEvolutionName(Evolution), GetRankingClassName(Classe));
+}
+
+static void RenderRankingPage(int StartIndex, int State)
+{
+	if (StartIndex < 0)
+		StartIndex = 0;
+
+	if (StartIndex > 40)
+		StartIndex = 40;
+
+	SetRankingText(1919401, "Pos");
+	SetRankingText(1919402, "Nick");
+	SetRankingText(1919403, State == 1 ? "PvP" : "Level");
+	SetRankingText(1919404, "Evolucao");
+	SetRankingText(1919405, "Classe");
+
+	for (int i = 0; i < 10; i++)
+	{
+		int Index = StartIndex + i;
+		int Value = State == 1 ? g_pClientInfo->Ranking.PvP[Index] : g_pClientInfo->Ranking.RankLevel[Index];
+
+		SetRankingRow(1919410 + i, Index + 1, g_pClientInfo->Ranking.RankName[Index], Value,
+			g_pClientInfo->Ranking.RankEvolution[Index], g_pClientInfo->Ranking.RankClasse[Index]);
+	}
+}
+
+static void SetRankingFallbackText(int Handle, const char* Format, ...)
+{
+	auto Label = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(Handle);
+	if (!Label)
+		return;
+
+	char Buffer[128] = { 0 };
+	va_list Args;
+	va_start(Args, Format);
+	int Size = vsprintf_s(Buffer, Format, Args);
+	va_end(Args);
+
+	if (Size < 0 || Size >= sizeof(Buffer))
+		return;
+
+	Label->setText(Buffer);
+}
+
+static void AnchorFallbackPageControlToPager()
+{
+	auto Page = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179521);
+	auto Prev = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179530);
+	auto Next = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179531);
+	if (!Page || !Prev || !Next)
+		return;
+
+	float Left = Prev->Left + Prev->Width;
+	float Width = Next->Left - Left;
+	if (Width < 12.0f || Width > 80.0f)
+		return;
+
+	Page->Left = Left;
+	Page->Width = Width;
+	Page->ViewLeft = Left;
+	Page->ViewWidth = Width;
+	Page->PosX = Prev->PosX + (UINT32)Prev->Width;
+}
+
+static void ApplyRankingFallbackLayout()
+{
+	for (int i = 0; i < 10; i++)
+	{
+		auto Button = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179501 + i);
+		auto Label = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179511 + i);
+		if (!Button || !Label)
+			continue;
+
+		float Left = Button->Left + 7.0f;
+		float Width = Button->Width > 14.0f ? Button->Width - 14.0f : Button->Width;
+
+		Label->Left = Left;
+		Label->Width = Width;
+		Label->ViewLeft = Left;
+		Label->ViewWidth = Width;
+		Label->PosX = Button->PosX + 7;
+	}
+
+	AnchorFallbackPageControlToPager();
+}
+
+static void ApplyRankingCenteredLayout()
+{
+	auto Grid = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179600);
+
+	float GrayLeft = 0.0f;
+	float GrayWidth = 0.0f;
+
+	if (Grid && Grid->Width > 20.0f)
+	{
+		GrayLeft = Grid->Left;
+		GrayWidth = Grid->Width;
+	}
+	else
+	{
+		auto Panel = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179500);
+		auto Button = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179501);
+		if (Panel && Button)
+		{
+			float ButtonsRight = Button->Left + Button->Width;
+			GrayLeft = ButtonsRight;
+			GrayWidth = (Panel->Left + Panel->Width) - ButtonsRight;
+		}
+	}
+
+	if (GrayWidth >= 40.0f)
+	{
+		const float ColWidth = 250.0f;
+		float Left = GrayLeft + (GrayWidth - ColWidth) * 0.5f;
+		if (Left < GrayLeft)
+			Left = GrayLeft;
+
+		for (int i = 0; i < 11; i++)
+		{
+			int Handle = (i < 10) ? (179511 + i) : 179521;
+			auto Label = g_pInterface->Instance()->getGuiFromHandle<UIControl>(Handle);
+			if (!Label)
+				continue;
+
+			Label->Left = Left;
+			Label->Width = ColWidth;
+			Label->ViewLeft = Left;
+			Label->ViewWidth = ColWidth;
+			Label->PosX = (UINT32)Left;
+		}
+	}
+}
+
+static void ClearRankingFallbackGrid()
+{
+	auto DropListGrid = g_pInterface->Instance()->getGuiFromHandle<UISlot>(179600);
+	if (!DropListGrid)
+		return;
+
+	*(int*)((int)DropListGrid + 0x400) = 0x5;
+	DropListGrid->deleteItems();
+}
+
+static void RenderRankingFallbackPage(int StartIndex, int State)
+{
+	if (StartIndex < 0)
+		StartIndex = 0;
+
+	if (StartIndex > 40)
+		StartIndex = 40;
+
+	SetRankingFallbackText(179521, "Ranking %s  %d/5", State == 1 ? "PvP" : "Level", ConfigR::RankingPage);
+
+	for (int i = 0; i < 10; i++)
+	{
+		int Index = StartIndex + i;
+		int Value = State == 1 ? g_pClientInfo->Ranking.PvP[Index] : g_pClientInfo->Ranking.RankLevel[Index];
+		const char* SafeName = g_pClientInfo->Ranking.RankName[Index][0] ? g_pClientInfo->Ranking.RankName[Index] : "-";
+
+		SetRankingFallbackText(179511 + i, "%02d. %s  %s %d  %s  %s",
+			Index + 1,
+			SafeName,
+			State == 1 ? "PvP" : "Lv",
+			Value,
+			GetRankingEvolutionName(g_pClientInfo->Ranking.RankEvolution[Index]),
+			GetRankingClassName(g_pClientInfo->Ranking.RankClasse[Index]));
+	}
+}
+
+static bool OpenRankingFallbackPanel(int State)
+{
+	auto DropList = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179500);
+	if (!DropList)
+		return false;
+
+	ConfigR::WindowControl = RANKING;
+	ConfigR::DropListPage = 0;
+	ConfigR::DropListRegion = 0;
+
+	ApplyRankingCenteredLayout();
+	ClearRankingFallbackGrid();
+	RenderRankingFallbackPage((ConfigR::RankingPage - 1) * 10, State);
+
+	DropList->IsVisible = true;
+	return true;
+}
 
 void CClientInfo::Init()
 {
@@ -156,20 +395,21 @@ void CClientInfo::ReceiveInfo(char* Packet)
 		auto p = reinterpret_cast<MSG_SendRanking*>(Packet);
 		
 		for (int i = 0; i < 50; i++) {
-			strncpy(this->Ranking.RankName[i], p->RankName[i], sizeof(this->Ranking.RankName[i]));
+			strncpy(this->Ranking.RankName[i], p->RankName[i], sizeof(this->Ranking.RankName[i]) - 1);
+			this->Ranking.RankName[i][sizeof(this->Ranking.RankName[i]) - 1] = 0;
 			this->Ranking.RankLevel[i] = p->RankLevel[i];
-			this->Ranking.RankClasse[i] = p->RankClasse[i];
-			this->Ranking.RankEvolution[i] = p->RankEvolution[i];
+			this->Ranking.RankClasse[i] = NormalizeRankingClass(p->RankClasse[i]);
+			this->Ranking.RankEvolution[i] = NormalizeRankingEvolution(p->RankEvolution[i]);
 			this->Ranking.PvP[i] = p->PvP[i];
 		}
-		this->Ranking.State = p->State;
+		this->Ranking.State = p->State == 1 ? 1 : 0;
 
 		auto PainelRanking = g_pInterface->Instance()->getGuiFromHandle<UIControl>(1919400);
 
 		char Evolution[5][15] = { "Mortal", "Arch", "Celestial", "CelestialCS", "SubCelestial" };
 		char Classe[4][4] = { "TK", "FM", "BM", "HT" };
 
-		if (p->State == 0) {
+		if (false && p->State == 0) {
 			auto Pos = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(1919401);
 			Pos->setConstString("Pos");
 			auto Name = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(1919402);
@@ -207,7 +447,7 @@ void CClientInfo::ReceiveInfo(char* Packet)
 			Pos9->setConstString("9. [%s][%d][%s][%s]", this->Ranking.RankName[8], this->Ranking.RankLevel[8], Evolution[this->Ranking.RankEvolution[8] - 1], Classe[this->Ranking.RankClasse[8]]);
 			Pos10->setConstString("10. [%s][%d][%s][%s]", this->Ranking.RankName[9], this->Ranking.RankLevel[9], Evolution[this->Ranking.RankEvolution[9] - 1], Classe[this->Ranking.RankClasse[9]]);			
 		}
-		if (p->State == 1) {
+		if (false && p->State == 1) {
 			auto Pos = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(1919401);
 			Pos->setConstString("Pos");
 			auto Name = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(1919402);
@@ -245,7 +485,18 @@ void CClientInfo::ReceiveInfo(char* Packet)
 			Pos9->setConstString("9. [%s][%d][%s][%s]", this->Ranking.RankName[8], this->Ranking.PvP[8], Evolution[this->Ranking.RankEvolution[8] - 1], Classe[this->Ranking.RankClasse[8]]);
 			Pos10->setConstString("10. [%s][%d][%s][%s]", this->Ranking.RankName[9], this->Ranking.PvP[9], Evolution[this->Ranking.RankEvolution[9] - 1], Classe[this->Ranking.RankClasse[9]]);
 		}
-		
+
+		ConfigR::RankingPage = 1;
+		SetRankingPageText(ConfigR::RankingPage);
+		RenderRankingPage(0, this->Ranking.State);
+
+		// Abre o painel ao receber os dados (necessario para o NPC de ranking,
+		// que dispara o sendRanking pelo servidor sem passar pelo botao).
+		if (PainelRanking)
+			PainelRanking->IsVisible = true;
+		else
+			OpenRankingFallbackPanel(this->Ranking.State);
+
 	}break;
 	case _MSG_MailItem:
 	{
@@ -313,10 +564,13 @@ void CClientInfo::ReceiveInfo(char* Packet)
 		auto p = reinterpret_cast<MSG_SendDListNames*>(Packet);
 
 		ConfigR::DropListTpages = 1;
-		int nMobs = 0;
+		int nMobs = 30;
 
 		for (int i = 0; i < 30; i++)
-			strncpy(this->DropList.MobName[i], p->MobName[i], sizeof(this->DropList.MobName[i]));
+		{
+			strncpy(this->DropList.MobName[i], p->MobName[i], sizeof(this->DropList.MobName[i]) - 1);
+			this->DropList.MobName[i][sizeof(this->DropList.MobName[i]) - 1] = 0;
+		}
 
 		for (int y = 0; y < 30; y++) {
 			if (strcmp(p->MobName[y], "") == 0) {
@@ -324,6 +578,8 @@ void CClientInfo::ReceiveInfo(char* Packet)
 				break;
 			}
 		}
+
+		ApplyRankingFallbackLayout();
 
 		auto NewWindowTX1 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179511);
 		auto NewWindowTX2 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179512);

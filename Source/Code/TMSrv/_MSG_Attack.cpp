@@ -17,11 +17,47 @@
 *   Contact at: victor.klafke@ecomp.ufsm.br
 */
 #include "ProcessClientMessage.h"
+#include "BalanceTelemetry.h"
+#include "BalanceTestSetup.h"
 #include <windows.h>
 #include <time.h>
 #include <random>
 #include <ctime>
 
+namespace
+{
+	void ApplyBalanceTestTargetOverride(int conn, MSG_Attack* attack, int skillnum)
+	{
+		if (attack == NULL || skillnum < 0)
+			return;
+
+		// Auto-aponta para o defensor sempre que houver um cenario de balanceamento
+		// ativo e a skill esperada vier sem alvo. Antes restringia por prefixo de
+		// nome (B/C), o que quebrou ao mudar os nomes para CE-/AR-/MO-.
+		const char* scenario = GetBalanceTestScenario(conn);
+		if (scenario == NULL || scenario[0] == '\0')
+			return;
+
+		if (IsBalanceTestSkillAudit(conn))
+			return;
+
+		int expectedSkill = -1;
+		if (!GetBalanceTestExpectedSkill(conn, &expectedSkill) || expectedSkill != skillnum)
+			return;
+
+		if (attack->Dam[0].TargetID > 0 && attack->Dam[0].TargetID < MAX_MOB)
+			return;
+
+		int defenderConn = GetBalanceTestDefenderConn();
+		if (defenderConn <= 0 || defenderConn >= MAX_USER || defenderConn == conn || pUser[defenderConn].Mode != USER_PLAY)
+			return;
+
+		attack->Dam[0].TargetID = (short)defenderConn;
+		attack->Dam[0].Damage = -1;
+		attack->TargetX = pMob[defenderConn].TargetX;
+		attack->TargetY = pMob[defenderConn].TargetY;
+	}
+}
 void Exec_MSG_Attack(int conn, char* pMsg)
 {
 	MSG_Attack* m = reinterpret_cast<MSG_Attack*>(pMsg);
@@ -39,7 +75,7 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 
 	if (Size > sizeof(MSG_Attack)) //CONTROLE DE SIZE
 	{
-		SendClientMessage(conn, "Impossível executar ação6, tente mais tarde.");
+		SendClientMessage(conn, "Impossï¿½vel executar aï¿½ï¿½o6, tente mais tarde.");
 		return;
 	}
 
@@ -59,12 +95,20 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 
 	if (m->SkillIndex == 110 || m->SkillIndex == 96 || m->SkillIndex == 90) //hack use skill kefra 20/10
 	{
-		//pMob[conn].CrackError = SystemTime + 10800;
-		/*
-		snprintf(temp, sizeof(temp), "Banido por usar skill de Kefra");
-		SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP, temp);*/
-		SendBanAccount(conn, Banned::Permanente);
-		return;
+		int expectedSkill = -1;
+		bool balanceAuditExpectedSkill = IsBalanceTestSkillAudit(conn)
+			&& GetBalanceTestExpectedSkill(conn, &expectedSkill)
+			&& expectedSkill == m->SkillIndex;
+
+		if (!balanceAuditExpectedSkill)
+		{
+			//pMob[conn].CrackError = SystemTime + 10800;
+			/*
+			snprintf(temp, sizeof(temp), "Banido por usar skill de Kefra");
+			SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP, temp);*/
+			SendBanAccount(conn, Banned::Permanente);
+			return;
+		}
 	}
 
 	if (*(short*)&pMsg[48] == 7 && *(short*)&pMsg[73] == 0xBBB)  //HACK DIA 20/10   //one hit
@@ -77,7 +121,7 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 	}
 
 
-	//Personagem morto tentando usar uma skill que não é ressureição
+	//Personagem morto tentando usar uma skill que nï¿½o ï¿½ ressureiï¿½ï¿½o
 	if (pMob[conn].MOB.CurrentScore.Hp == 0 && m->SkillIndex != 99)
 	{
 		SendHpMode(conn);
@@ -348,6 +392,8 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 	}
 #pragma endregion
 
+	ApplyBalanceTestTargetOverride(conn, m, skillnum);
+
 	int Alvo = m->Dam[0].TargetID;
 
 #pragma region Range Hack  
@@ -443,7 +489,7 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 			if (skillnum == 102) skilldelay = 1;
 			skilldelay = skilldelay * 1000;
 			if (skilldelay <= 0) skilldelay = 400;
-			// correção skill cura 
+			// correï¿½ï¿½o skill cura 
 			if (skillnum == 29) skilldelay = 1;
 			if (skillnum == 47) skilldelay = 1;
 			pUser[conn].Ingame.Skill[skillnum].IntervalTime = CurrentTime;
@@ -474,43 +520,57 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 	if (skillnum >= 0 && skillnum < MAX_SKILLINDEX)
 	{
 		int ManaSpent = BASE_GetManaSpent(skillnum, pMob[conn].MOB.SaveMana, Special);
-
-		if ((pMob[conn].MOB.CurrentScore.Mp - ManaSpent) < 0)
+		int TotalManaSpent = ManaSpent;
+		bool HasCenote = pMob[conn].MOB.Class == 1 && (pMob[conn].extra.SecLearnedSkill & 0x1);
+		bool HasMysteriousMagic = false;
+		bool HasMagicMirror = pMob[conn].MOB.Class == 0 && (pMob[conn].extra.SecLearnedSkill & 0x100);
+		bool balanceCenote = false;
+		bool balanceMysteriousMagic = false;
+		bool balanceMagicMirror = false;
+		if (GetBalanceTestManaFlags(conn, &balanceCenote, &balanceMysteriousMagic, &balanceMagicMirror))
 		{
+			HasCenote = balanceCenote;
+			HasMysteriousMagic = balanceMysteriousMagic;
+			HasMagicMirror = balanceMagicMirror;
+		}
+
+		if (pMob[conn].MOB.Class == 1)
+		{
+			if (HasCenote)
+				TotalManaSpent += ManaSpent * 2;
+
+			if (!HasMysteriousMagic)
+			{
+				for (int i = 0; i < MAX_AFFECT; i++)
+				{
+					if (pMob[conn].Affect[i].Type == 42)
+					{
+						HasMysteriousMagic = true;
+						break;
+					}
+				}
+			}
+
+			if (HasMysteriousMagic)
+				TotalManaSpent += ManaSpent * 2;
+		}
+
+		if (HasMagicMirror)
+			TotalManaSpent += ManaSpent / 2;
+
+		if (pMob[conn].MOB.CurrentScore.Mp < TotalManaSpent)
+		{
+			LogBalanceManaTelemetry(conn, skillnum, ManaSpent, TotalManaSpent, Mp, Mp,
+				false, HasCenote, HasMysteriousMagic, HasMagicMirror);
 			SendSetHpMp(conn);
 			return;
 		}
 
-		pMob[conn].MOB.CurrentScore.Mp = pMob[conn].MOB.CurrentScore.Mp - ManaSpent;
-		pUser[conn].ReqMp = pUser[conn].ReqMp - ManaSpent;
+		pMob[conn].MOB.CurrentScore.Mp -= TotalManaSpent;
+		pUser[conn].ReqMp -= TotalManaSpent;
 		SetReqMp(conn);
-
-		if (pMob[conn].MOB.Class == 1)
-		{
-			if (pMob[conn].extra.SecLearnedSkill & 0x1) // Cenote
-			{
-				pMob[conn].MOB.CurrentScore.Mp = pMob[conn].MOB.CurrentScore.Mp - ManaSpent * 2;
-				pUser[conn].ReqMp = pUser[conn].ReqMp - ManaSpent * 2;
-				SetReqMp(conn);
-			}
-
-			for (int i = 0; i < MAX_AFFECT; i++) // Magia Misteriosa
-			{
-				if (pMob[conn].Affect[i].Type == 42)
-				{
-					pMob[conn].MOB.CurrentScore.Mp = pMob[conn].MOB.CurrentScore.Mp - ManaSpent * 2;
-					pUser[conn].ReqMp = pUser[conn].ReqMp - ManaSpent * 2;
-					SetReqMp(conn);
-				}
-			}
-		}
-
-		if (pMob[conn].MOB.Class == 0 && (pMob[conn].extra.SecLearnedSkill & 0x100)) // Espelho Mágico
-		{
-			pMob[conn].MOB.CurrentScore.Mp = pMob[conn].MOB.CurrentScore.Mp - ManaSpent / 2;
-			pUser[conn].ReqMp = pUser[conn].ReqMp - ManaSpent / 2;
-			SetReqMp(conn);
-		}
+		LogBalanceManaTelemetry(conn, skillnum, ManaSpent, TotalManaSpent, Mp,
+			pMob[conn].MOB.CurrentScore.Mp, true, HasCenote, HasMysteriousMagic, HasMagicMirror);
 	}
 
 	m->CurrentMp = pMob[conn].MOB.CurrentScore.Mp;
@@ -588,6 +648,16 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 		if (idx <= 0 || idx >= MAX_MOB)
 			continue;
 
+		bool aggressiveAttack = m->Dam[i].Damage == -2 ||
+			(skillnum >= 0 && skillnum <= MAX_SKILLINDEX && g_pSpell[skillnum].Aggressive);
+
+		if (idx < MAX_USER && idx != conn && pUser[idx].Admin == 1 && aggressiveAttack)
+		{
+			m->Dam[i].TargetID = 0;
+			m->Dam[i].Damage = 0;
+			continue;
+		}
+
 		// Tiro Direto
 		if (pMob[conn].MOB.Class == 3 && (pMob[conn].extra.SecLearnedSkill & 0x100))
 		{
@@ -661,6 +731,27 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 			m->Dam[i].Damage = 0;
 
 			SendRemoveMob(conn, idx, 1, 0);
+			continue;
+		}
+
+		if (idx >= MAX_USER &&
+			(pMob[idx].MOB.Merchant == 11 ||
+			 strcmp(pMob[idx].MOB.MobName, "Cap.Explor") == 0 ||
+			 strcmp(pMob[idx].MOB.MobName, "Cap.Explor.") == 0))
+		{
+			MSG_STANDARDPARM2 quest;
+			memset(&quest, 0, sizeof(MSG_STANDARDPARM2));
+
+			quest.Size = sizeof(MSG_STANDARDPARM2);
+			quest.Type = _MSG_Quest;
+			quest.ID = conn;
+			quest.Parm1 = idx;
+			quest.Parm2 = 1;
+
+			Exec_MSG_Quest(conn, (char*)&quest);
+
+			m->Dam[i].TargetID = 0;
+			m->Dam[i].Damage = 0;
 			continue;
 		}
 
@@ -1081,7 +1172,7 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 #pragma endregion
 
 
-#pragma region Ataque físico
+#pragma region Ataque fisico
 		if (dam == -2)
 		{
 			int dis = BASE_GetDistance(m->PosX, m->PosY, m->TargetX, m->TargetY);
@@ -1253,7 +1344,7 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 					def *= 2;
 
 				if (pMob[idx].MOB.Class == 1)
-					def = (def * 3) / 2;
+					def = (def * 11) / 10;
 
 				dam = BASE_GetSkillDamage((int)dam, def, master);
 
@@ -1292,8 +1383,8 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 				}
 			}
 
-			//if ((pMob[conn].MOB.Equip[0].sIndex == 11 || pMob[conn].MOB.Equip[0].sIndex == 16 || pMob[conn].MOB.Equip[0].sIndex == 17 || pMob[conn].MOB.Equip[0].sIndex == 18 || pMob[conn].MOB.Equip[0].sIndex == 19) && pMob[conn].MOB.LearnedSkill & 15)// colocar todos os index de class FM, são 4 verificar se 15 é a oitava de fm
-			//	dam -= (dam * 0) / 100;// Aqui estamos diminuindo 40% do seu dano das skills, caso queira mudar, é só mudar o valor ali de 40 pra outro valor
+			//if ((pMob[conn].MOB.Equip[0].sIndex == 11 || pMob[conn].MOB.Equip[0].sIndex == 16 || pMob[conn].MOB.Equip[0].sIndex == 17 || pMob[conn].MOB.Equip[0].sIndex == 18 || pMob[conn].MOB.Equip[0].sIndex == 19) && pMob[conn].MOB.LearnedSkill & 15)// colocar todos os index de class FM, sï¿½o 4 verificar se 15 ï¿½ a oitava de fm
+			//	dam -= (dam * 0) / 100;// Aqui estamos diminuindo 40% do seu dano das skills, caso queira mudar, ï¿½ sï¿½ mudar o valor ali de 40 pra outro valor
 
 			//Tempestade de flechas
 			if (skillnum == 79)
@@ -1312,13 +1403,18 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 				dam = BASE_GetDamage((int)dam, Ac, master);
 
 			}
-			if (skillnum == 86) //Explosão Etéria
+
+			if (skillnum == 86) // Explosao Eterea
 			{
-				dam += pMob[conn].MOB.CurrentScore.Str;
-				dam += pMob[conn].MOB.CurrentScore.Dex;
+				int attributeDamage = pMob[conn].MOB.CurrentScore.Str + pMob[conn].MOB.CurrentScore.Dex;
+
+				if (idx < MAX_USER || pMob[idx].MOB.Clan == 4)
+					attributeDamage /= 8;
+
+				dam += attributeDamage;
 			}
 #pragma endregion
-#pragma region Cura / Recuperação
+#pragma region Cura / Recuperacao
 			else if (InstanceType == 6)
 			{
 				if (pMob[idx].MOB.Clan == 4)
@@ -1604,7 +1700,7 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 				dam = 0;
 			}
 #pragma endregion
-#pragma region Chamas Etéreas
+#pragma region Chamas Etereas
 			else if (InstanceType == 12)
 			{
 				int Leader = pMob[conn].Leader, slot = 0, targetlevel = pMob[idx].MOB.CurrentScore.Level, level = pMob[conn].MOB.CurrentScore.Level, chance, _rand;
@@ -1755,7 +1851,13 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 				int kind4 = pMob[conn].MOB.CurrentScore.Special[3];
 
 				int _INT = pMob[conn].MOB.CurrentScore.Int;
-				dam = (dam + _INT);//+ (_INT / 3);
+				bool isExterminarPvPTarget = (idx > 0 && idx < MAX_USER)
+					|| (idx >= MAX_USER && idx < MAX_MOB && pMob[idx].MOB.Clan == 4);
+
+				if (isExterminarPvPTarget)
+					dam = dam + (_INT * 2) + (kind4 * 2);
+				else
+					dam = (dam + _INT);//+ (_INT / 3);
 
 				int PosX = pMob[idx].TargetX;
 				int PosY = pMob[idx].TargetY;
@@ -1781,7 +1883,18 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 #pragma region Julgamento divino
 			else if (skillnum == 30)
 			{
-				dam = dam + hp;
+				int divineDamage = hp;
+				bool isJulgamentoPvPTarget = (idx > 0 && idx < MAX_USER)
+					|| (idx >= MAX_USER && idx < MAX_MOB && pMob[idx].MOB.Clan == 4);
+
+				if (isJulgamentoPvPTarget)
+				{
+					const int kJulgamentoDivinoPvPCap = 16000;
+					if (divineDamage > kJulgamentoDivinoPvPCap)
+						divineDamage = kJulgamentoDivinoPvPCap;
+				}
+
+				dam = dam + divineDamage;
 
 				pMob[conn].MOB.CurrentScore.Hp = ((pMob[conn].MOB.CurrentScore.Hp) / 6) + 1;
 				pUser[conn].ReqHp = pMob[conn].MOB.CurrentScore.Hp;
@@ -1876,7 +1989,7 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 			//			{
 			//				if (pMob[idx].Leader == NULL && pMob[idx].MOB.Guild != pMob[conn].MOB.Guild)
 			//				{
-			//					SendClientMessage(conn, "Você não pode usar essa skill em membros que não forem da sua guild ou estejam em Grupo.");
+			//					SendClientMessage(conn, "Vocï¿½ nï¿½o pode usar essa skill em membros que nï¿½o forem da sua guild ou estejam em Grupo.");
 			//					return;
 			//				}
 			//
@@ -2081,7 +2194,7 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 			}
 #pragma endregion
 
-#pragma region Transformação
+#pragma region Transformacao
 			if (skillnum == 64 || skillnum == 66 || skillnum == 68 || skillnum == 70 || skillnum == 71)
 			{
 				pMob[conn].GetCurrentScore(conn);
@@ -2090,7 +2203,7 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 			}
 #pragma endregion
 
-#pragma region Book Ressureição
+#pragma region Book Ressureicao
 			if (pMob[conn].MOB.CurrentScore.Hp == 0 && skillnum == 99)
 			{
 				int rev = rand() % 115;
@@ -2147,11 +2260,16 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 
 		if (pMob[conn].ForceDamage != 0)
 		{
+			int forceDamage = pMob[conn].ForceDamage;
+
+			if (idx < MAX_USER || pMob[idx].MOB.Clan == 4)
+				forceDamage /= 4;
+
 			if (dam <= 1)
-				dam = pMob[conn].ForceDamage;
+				dam = forceDamage;
 
 			else if (dam > 0)
-				dam = dam + pMob[conn].ForceDamage;
+				dam = dam + forceDamage;
 
 			m->Dam[i].Damage = dam;
 		}
@@ -2248,7 +2366,7 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 
 				int parryretn = GetParryRate(&pMob[conn].MOB, pMob[conn].MOB.CurrentScore.Dex, pMob[conn].MOB.Rsv, pMob[conn].Parry, pMob[idx].MOB.CurrentScore.Dex, pMob[idx].MOB.Rsv, pMob[idx].Parry);
 
-				if (pMob[conn].extra.SecLearnedSkill & 0x100) // Espelho Mágico
+				if (pMob[conn].extra.SecLearnedSkill & 0x100) // Espelho Mï¿½gico
 				{
 					int Special = (pMob[conn].MOB.CurrentScore.Special[3] / 2);
 
@@ -2268,10 +2386,10 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 						dam = -4;
 				}
 
-				if (dam == -4 || dam == -3)  // Verifica se o DAM é -4 ou -3;
-					pMob[idx].MissPlayer = TRUE; // Define na variavel MissPlayer quando o idx ataca ele é o conn, definindo o conn eu como idx;
+				if (dam == -4 || dam == -3)  // Verifica se o DAM ï¿½ -4 ou -3;
+					pMob[idx].MissPlayer = TRUE; // Define na variavel MissPlayer quando o idx ataca ele ï¿½ o conn, definindo o conn eu como idx;
 
-				if (pMob[conn].MissPlayer == TRUE && dam > 0) // Verifica se o dano da variavel MissPlayer é -4 ou -3 e compara 
+				if (pMob[conn].MissPlayer == TRUE && dam > 0) // Verifica se o dano da variavel MissPlayer ï¿½ -4 ou -3 e compara 
 				{
 					if (pMob[conn].MOB.Class == 3 && (pMob[conn].extra.SecLearnedSkill & 0x1)) //Verifica a Classe juntamente a Nona;
 					{
@@ -2298,7 +2416,7 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 			}
 		}
 
-		if (pMob[idx].MOB.Class == 0) // Proteção Divina
+		if (pMob[idx].MOB.Class == 0) // Proteï¿½ï¿½o Divina
 		{
 			for (int i = 0; i < MAX_AFFECT; i++)
 			{
@@ -2307,7 +2425,7 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 			}
 		}
 
-		if (pMob[idx].MOB.Class == 1) // Proteção Absoluta
+		if (pMob[idx].MOB.Class == 1) // Proteï¿½ï¿½o Absoluta
 		{
 			for (int i = 0; i < MAX_AFFECT; i++)
 			{
@@ -2459,6 +2577,7 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 
 		auto multHpMob = pMob[idx].MOB.Equip[13].sIndex;
 		auto _tDamage = tDamage;
+		int balanceHpBefore = pMob[idx].MOB.CurrentScore.Hp;
 		if (multHpMob == 786 || multHpMob == 1936 || multHpMob == 1937)
 		{
 			int HpItem = GetItemSancNew(&pMob[idx].MOB.Equip[13]);
@@ -2486,6 +2605,10 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 			pMob[idx].MOB.CurrentScore.Hp = 0;
 		else
 			pMob[idx].MOB.CurrentScore.Hp -= _tDamage;
+
+		LogBalanceTelemetry(conn, idx, skillnum, m->Dam[i].Damage, _tDamage,
+			 balanceHpBefore, pMob[idx].MOB.CurrentScore.Hp,
+			 Mp, pMob[conn].MOB.CurrentScore.Mp, pMob[idx].MOB.CurrentScore.Mp, m->DoubleCritical);
 
 		if (_calcDamage > 0)
 			ProcessAdultMount(idx, _calcDamage / 2);
@@ -2571,7 +2694,7 @@ void Exec_MSG_Attack(int conn, char* pMsg)
 		//	LinkMountHp(idx);
 
 
-#pragma region Joia Abs
+#pragma region Life steal (legacy field HpAbs)
 		if (pMob[conn].HpAbs != 0 && (rand() % 2) == 0 && dam >= 1)
 		{
 			int RecHP = (int)((dam * pMob[conn].HpAbs + 1) / 50);

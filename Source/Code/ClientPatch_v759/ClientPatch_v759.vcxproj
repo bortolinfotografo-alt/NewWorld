@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="aHacker.cpp" />
+    <ClCompile Include="AutoTradePreview.cpp" />
     <ClCompile Include="ButtonControl.cpp" />
     <ClCompile Include="CClientInfo.cpp" />
     <ClCompile Include="cFunctions.cpp" />
@@ -36,6 +37,7 @@
     <ClCompile Include="ItemDescription.cpp" />
     <ClCompile Include="ItemPriceFormatDecimal.cpp" />
     <ClCompile Include="MacroNewPotions.cpp" />
+    <ClCompile Include="MacroPergaminhoAgua.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainLoop.cpp" />
     <ClCompile Include="MountTrajes.cpp" />
@@ -150,7 +152,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetExt>.dll</TargetExt>
-    <OutDir>..\..\..\..\..\..\..\Program Files %28x86%29\WYD - The New World - Copia</OutDir>
+    <OutDir>..\..\..\..\..\..\..\Program Files %28x86%29\Wyd Kingdom - Copia</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

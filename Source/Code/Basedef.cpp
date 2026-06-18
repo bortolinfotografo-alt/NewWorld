@@ -19,7 +19,7 @@
 
 
 #pragma region Defines
-// definição da base de força, inteligencia, dextreza, con, HP e HP das 4 classes
+// definiï¿½ï¿½o da base de forï¿½a, inteligencia, dextreza, con, HP e HP das 4 classes
 int BaseSIDCHM[4][6] = // Define the base Strength, Intelligence, Dexterity, Constance, HP and MP of the 4 classes
 {
 	{8, 4, 7, 6, 80, 45}, // TK
@@ -59,11 +59,11 @@ int BaseGarras[4][19] =
 
 STRUCT_GUILDZONE g_pGuildZone[MAX_GUILDZONE] =
 {
-	{0, 0, 2088, 2148, 2086, 2093, 2052, 2052, 2171, 2163, 197, 213, 238, 230, 205, 220, 228, 220, 5, 0}, // Armia
-	{0, 0, 2531, 1700, 2494, 1707, 2432, 1672, 2675, 1767, 197, 149, 238, 166, 205, 157, 228, 157, 5, 0}, // Azran
-	{0, 0, 2460, 1976, 2453, 2000, 2448, 1966, 2476, 2024, 141, 213, 182, 230, 146, 220, 173, 220, 5, 0}, // Erion
-	{0, 0, 3614, 3124, 3652, 3122, 3605, 3090, 3690, 3260, 141, 149, 182, 166, 146, 157, 173, 157, 5, 0}, // Nippleheim
-	{0, 0, 1066, 1760, 1050, 1706, 1036, 1700, 1072, 1760, 4000, 4000, 4010, 4010, 4005, 4005, 4005, 4005, 5, 0} // Noatum
+	{0, 0, 2088, 2148, 2086, 2093, 2052, 2052, 2171, 2163, 197, 213, 238, 230, 205, 220, 228, 220, 10, 0}, // Armia
+	{0, 0, 2531, 1700, 2494, 1707, 2432, 1672, 2675, 1767, 197, 149, 238, 166, 205, 157, 228, 157, 10, 0}, // Azran
+	{0, 0, 2460, 1976, 2453, 2000, 2448, 1966, 2476, 2024, 141, 213, 182, 230, 146, 220, 173, 220, 10, 0}, // Erion
+	{0, 0, 3614, 3124, 3652, 3122, 3605, 3090, 3690, 3260, 141, 149, 182, 166, 146, 157, 173, 157, 10, 0}, // Nippleheim
+	{0, 0, 1066, 1760, 1050, 1706, 1036, 1700, 1072, 1760, 4000, 4000, 4010, 4010, 4005, 4005, 4005, 4005, 10, 0} // Noatum
 };
 
 ServerInfos Server;
@@ -84,7 +84,7 @@ int CurrentClientGuild = -1;
 int ClassVsClass[5][50];
 int pClassVsClass[5][50];
 
-// rates refinação
+// rates refinaï¿½ï¿½o
 int g_pSancRate[3][12] =
 {
 	100, 100, 100, 75, 60, 30, 5, 00, 00, 00, 00, 00, // PO
@@ -106,15 +106,15 @@ int g_pSancGrade[2][5] =
 
 int g_pEhreRate[10] =
 {
-	0, 80, 100, 40, 40, 90, 100, 100, 100, 100   //rates REFINAÇÃO PINHEIRO
+	0, 80, 100, 40, 40, 90, 100, 100, 100, 100   //rates REFINAï¿½ï¿½O PINHEIRO
 };//N  P    M   P    A   R   T    R    S    L
   //A  A    I   E    M   E   R    E    O    A
   //D  C    S   D    U   F   A    M    U    C
   //A  K    T   R    N   I   J    O    L
   //        E   R    R   N   E    V         1
   //   D    R   A    A   A        E         0
-  //   E    I            Ç        R         0
-  //        O   A        Ã
+  //   E    I            ï¿½        R         0
+  //        O   A        ï¿½
   //   P    S   B        O
   //   O    A   S
 int g_pDedekintoRate[3] =
@@ -298,7 +298,7 @@ int g_pMountBonus[30][5] =
 	{10, 1, 0, 0, 4},//Porco
 	{10, 1, 0, 0, 4},//Javali
 	{50, 1, 0, 0, 5},//Lobo
-	{80, 15, 0, 0, 5},//Dragão menor
+	{80, 15, 0, 0, 5},//Dragï¿½o menor
 	{100, 20, 0, 0, 4},//Urso
 	{150, 25, 0, 0, 5},//Dente de sabre
 	{250, 50, 40, 0, 6},//Cavalo s/sela N
@@ -315,8 +315,8 @@ int g_pMountBonus[30][5] =
 	{600, 90, 0, 0, 6},//Dragao
 	{550, 90, 0, 20, 6},//Fenrir das sombras
 	{650, 100, 60, 28, 6},//Tigre de fogo
-	{750, 110, 80, 32, 6},//Dragão vermelho
-	{570, 90, 20, 16, 6},//Unicórnio
+	{750, 110, 80, 32, 6},//Dragï¿½o vermelho
+	{570, 90, 20, 16, 6},//Unicï¿½rnio
 	{570, 90, 30, 8, 6},//Pegasus
 	{570, 90, 40, 12, 6},//Unisus
 	{590, 90, 30, 20, 6},//Grifo
@@ -342,10 +342,10 @@ int g_pMountTempBonus[20][5] =
 	{ 450, 72, 0, 0, 6 },//Klazedale 30D
 	{ 325, 35, 16, 28, 6 },//Gulfaxi 30D
 	{ 350, 45, 10, 4, 6 },//Tigre de Fogo
-	{ 250, 25, 0, 31, 6 },//Dragão Vermelho
-	{ 80, 15, 0, 31, 6 },//Dragão Menor
-	{ 950, 145, 60, 20, 6 },//Dragão Akelo
-	{ 950, 145, 60, 20, 6 },//Dragão Hekalo
+	{ 250, 25, 0, 31, 6 },//Dragï¿½o Vermelho
+	{ 80, 15, 0, 31, 6 },//Dragï¿½o Menor
+	{ 950, 145, 60, 20, 6 },//Dragï¿½o Akelo
+	{ 950, 145, 60, 20, 6 },//Dragï¿½o Hekalo
 };
 unsigned char g_pGuildSub[8] = { 0xA5, 0xB0, 0xA5, 0xB1, 0xA5, 0xB2, 0x00, 0x00 };
 
@@ -356,7 +356,7 @@ unsigned char g_pGuildIndex[36] =
 	0xA5, 0xB8, 0xA5, 0xB9, 0xA3, 0xC1, 0xA3, 0xC2, 0xA3, 0xC3, 0xA3, 0xC4, 0xA3, 0xC5, 0xA3, 0xC6,
 	0x00, 0x00, 0x00, 0x00
 };
-//char g_pGuildMark[168] = {"??????????????×?????¿???????†‡????????®?????????????????????????"};
+//char g_pGuildMark[168] = {"??????????????ï¿½?????ï¿½???????ï¿½ï¿½????????ï¿½?????????????????????????"};
 unsigned char g_pGuildMark[132] =
 {
 	0xA5, 0xB0, 0xA5, 0xB1, 0xA5, 0xB2, 0xA5, 0xB3, 0xA5, 0xB4, 0xA5, 0xB5, 0xA5, 0xB6, 0xA5, 0xB7,
@@ -800,7 +800,7 @@ long long g_pNextLevel_2[MAX_CLEVEL + 2] = { // [199 + 202]
 	7960000000, 7980000000, 8000000000, 8200000000,
 };
 
-//Balanceamento Dano Invocações
+//Balanceamento Dano Invocaï¿½ï¿½es
 STRUCT_BEASTBONUS pSummonBonus[MAX_SUMMONLIST] =
 {
 	////MinDam, MaxDam, MinAc, MaxAc, MinHp, MaxHp, RunSpeed, UNK, AttackSpeed
@@ -809,13 +809,13 @@ STRUCT_BEASTBONUS pSummonBonus[MAX_SUMMONLIST] =
 	{ 40, 200, 50, 125, 125, 400, 0, 0, 0, 0, 0, 6, 0, 0, 100, 100, 50 }, //lobo
 	{ 40, 200, 50, 200, 150, 400, 0, 0, 0, 0, 0, 6, 0, 0, 100, 100, 70 }, //tigre
 	{ 40, 250, 50, 175, 150, 400, 0, 0, 0, 0, 0, 6, 0, 0, 100, 100, 90 }, //urso
-	{ 40, 225, 50, 250, 175, 400, 0, 0, 0, 0, 0, 6, 0, 0, 100, 100, 110 }, //gorila
-	{ 50, 250, 50, 250, 174, 400, 0, 0, 0, 0, 0, 6, 0, 0, 100, 100, 140 }, //dragao
-	{ 70, 250, 60, 200, 180, 250, 0, 0, 0, 0, 0, 6, 0, 0, 100, 100, 160 }, //sucubuss
+	{ 60, 320, 50, 250, 175, 400, 0, 0, 0, 0, 0, 6, 0, 0, 100, 100, 110 }, //gorila
+	{ 65, 320, 50, 250, 174, 400, 0, 0, 0, 0, 0, 6, 0, 0, 100, 100, 140 }, //dragao
+	{ 250, 850, 60, 200, 180, 250, 0, 0, 0, 0, 0, 6, 0, 0, 100, 100, 160 }, //sucubuss
 	{ 0, }
 };
 
-//Balanceamento Buff Transformação BM
+//Balanceamento Buff Transformaï¿½ï¿½o BM
 STRUCT_BEASTBONUS pTransBonus[5] =
 {
 	//MinDam, MaxDam, MinAc, MaxAc, MinHp, MaxHp, RunSpeed, UNK, AttackSpeed
@@ -826,7 +826,7 @@ STRUCT_BEASTBONUS pTransBonus[5] =
 	{ 105, 120, 110, 120, 105, 115, 3, 0, 20, 0, 100, 100, 100, 100, 100, 100, 155 } //eden
 };
 
-//char KorFirst[36] = {0,};//"¤¡¤¢¤¤¤§¤¨¤©¤±¤²¤³¤µ¤¶¤·¤¸¤¹¤º¤»¤¼¤½¤¾";
+//char KorFirst[36] = {0,};//"ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½";
 unsigned char KorFirst[36] =
 {
 	0xA4, 0xA1, 0xA4, 0xA2, 0xA4, 0xA4, 0xA4, 0xA7, 0xA4, 0xA8, 0xA4, 0xA9, 0xA4, 0xB1, 0xA4, 0xB2,
@@ -1183,7 +1183,7 @@ int BASE_GetBonusScorePoint(STRUCT_MOB* mob, STRUCT_MOBEXTRA* extra)
 			leveluse += (lvl - 189) * 2;
 
 
-		// não ganha ponto por level no sub celestial
+		// nï¿½o ganha ponto por level no sub celestial
 		/*
 		lvl = extra->QuestInfo.Celestial.SubCelestialLevel;
 
@@ -2804,7 +2804,7 @@ int BASE_GetMobAbility(STRUCT_MOB* mob, unsigned char Type)
 				else
 					multi = 30;
 
-				//Pericia do caçador
+				//Pericia do caï¿½ador
 				if ((mob->LearnedSkill & 0x400) && mob->Class == 3)
 					multi = 100;
 
@@ -3117,7 +3117,7 @@ void BASE_WriteItemList(int nItemList)
 
 		if (fp == NULL)
 		{
-			MessageBox(NULL, "ItemList.binÀ» »ý¼ºÇÒ¼ö ¾ø½À´Ï´Ù. ", "ERROR", NULL);
+			MessageBox(NULL, "ItemList.binï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ò¼ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½. ", "ERROR", NULL);
 			return;
 		}
 
@@ -3710,7 +3710,7 @@ void BASE_GetCurrentScore(STRUCT_MOB& MOB, STRUCT_AFFECT* Affect, STRUCT_MOBEXTR
 	if (MOB.Class == 0)
 	{
 
-		//Armadura Crítica
+		//Armadura Crï¿½tica
 		if (MOB.LearnedSkill & 0x8000)
 		{
 			MOB.CurrentScore.Ac = (int)(MOB.CurrentScore.Ac * 1.1f);
@@ -3722,7 +3722,7 @@ void BASE_GetCurrentScore(STRUCT_MOB& MOB, STRUCT_AFFECT* Affect, STRUCT_MOBEXTR
 		if (extra->SecLearnedSkill & 0x20)
 			MOB.Critical += 25;
 
-		// Espelho Mágico
+		// Espelho Mï¿½gico
 		if (extra->SecLearnedSkill & 0x100)
 		{
 			int calculo = (MOB.CurrentScore.Special[3]) / 10;
@@ -3769,7 +3769,7 @@ void BASE_GetCurrentScore(STRUCT_MOB& MOB, STRUCT_AFFECT* Affect, STRUCT_MOBEXTR
 		if (MOB.LearnedSkill & 0x80)
 			MOB.CurrentScore.Damage += 200;
 
-		//Visão do Caçador
+		//Visï¿½o do Caï¿½ador
 		if (MOB.LearnedSkill & 0x40000)
 		{
 			int criticaladd = ((special3 + 1) / 10) + (MOB.CurrentScore.Dex / 75);
@@ -3780,7 +3780,7 @@ void BASE_GetCurrentScore(STRUCT_MOB& MOB, STRUCT_AFFECT* Affect, STRUCT_MOBEXTR
 			Critical += criticaladd;
 		}
 
-		//Proteção das sombras
+		//Proteï¿½ï¿½o das sombras
 		if (MOB.LearnedSkill & 0x400000)
 		{
 			int sombraadd = (special3 / 3) + 10;
@@ -3822,13 +3822,13 @@ void BASE_GetCurrentScore(STRUCT_MOB& MOB, STRUCT_AFFECT* Affect, STRUCT_MOBEXTR
 
 	if (isSummon == 0)
 	{
-		// Pergaminho de Transformação
+		// Pergaminho de Transformaï¿½ï¿½o
 		if ((MOB.Equip[0].sIndex == 316 || MOB.Equip[0].sIndex == 317 || MOB.Equip[0].sIndex == 297 ||
 			MOB.Equip[0].sIndex == 202 || MOB.Equip[0].sIndex == 297 || MOB.Equip[0].sIndex == 209 ||
 			MOB.Equip[0].sIndex == 212 || MOB.Equip[0].sIndex == 230 || MOB.Equip[0].sIndex == 228))
 			MOB.Equip[0].sIndex = extra->ClassMaster == MORTAL ? extra->MortalFace : extra->MortalFace + 5 + MOB.Class;
 
-		// Transformação BeastMaster
+		// Transformaï¿½ï¿½o BeastMaster
 		if ((MOB.Equip[0].sIndex >= 20 && MOB.Equip[0].sIndex < 30 || MOB.Equip[0].sIndex == 32))
 			MOB.Equip[0].sIndex = extra->ClassMaster == MORTAL ? extra->MortalFace : extra->MortalFace + 5 + MOB.Class;
 	}
@@ -3857,7 +3857,7 @@ void BASE_GetCurrentScore(STRUCT_MOB& MOB, STRUCT_AFFECT* Affect, STRUCT_MOBEXTR
 		int Level = Affect[i].Level;		
 
 #pragma region Buffs
-		if (Type == 1) // Lentidão (?)
+		if (Type == 1) // Lentidï¿½o (?)
 		{
 			Run -= Value;
 
@@ -3972,7 +3972,7 @@ void BASE_GetCurrentScore(STRUCT_MOB& MOB, STRUCT_AFFECT* Affect, STRUCT_MOBEXTR
 				MOB.CurrentScore.Damage = totaldam;
 			}
 
-			//Precisão
+			//Precisï¿½o
 			if ((Level & (1 << 6)) != 0)
 				*Accuracy += 50;
 
@@ -4102,7 +4102,7 @@ void BASE_GetCurrentScore(STRUCT_MOB& MOB, STRUCT_AFFECT* Affect, STRUCT_MOBEXTR
             MOB.CurrentScore.Special[3] = tv;
         }
 
-		// Transformações
+		// Transformaï¿½ï¿½es
 		else if (Affect[i].Type == 16)
 		{
 			int value = Affect[i].Value - 1;
@@ -4252,7 +4252,7 @@ void BASE_GetCurrentScore(STRUCT_MOB& MOB, STRUCT_AFFECT* Affect, STRUCT_MOBEXTR
 
 			MOB.CurrentScore.Ac += add;
 		}
-		// Proteção Elemental
+		// Proteï¿½ï¿½o Elemental
 		else if (Type == 25)
 		{
 			int add = (Value + Level / 4) / 10;
@@ -4502,7 +4502,7 @@ void BASE_GetCurrentScore(STRUCT_MOB& MOB, STRUCT_AFFECT* Affect, STRUCT_MOBEXTR
 			}
 		}
 
-		// Poção Divina
+		// Poï¿½ï¿½o Divina
 		else if (Affect[i].Type == 34)
 		{
 			int HP = MOB.CurrentScore.MaxHp * 15 / 100;
@@ -4635,7 +4635,7 @@ void BASE_GetCurrentScore(STRUCT_MOB& MOB, STRUCT_AFFECT* Affect, STRUCT_MOBEXTR
 					MOB.CurrentScore.Damage = totaldam;
 				}
 
-				//Precisão
+				//Precisï¿½o
 				if ((Level & (1 << 6)) != 0)
 					*Accuracy += 50;
 
@@ -4914,19 +4914,18 @@ void BASE_GetCurrentScore(STRUCT_MOB& MOB, STRUCT_AFFECT* Affect, STRUCT_MOBEXTR
 		//TK
 		if (MOB.Class == 0)
 		{
-			MOB.CurrentScore.Damage -= MOB.CurrentScore.Damage * 5 / 100;
+			// TK has no class damage modifier.
 		}
 		//FM
 		if (MOB.Class == 1)
 		{
-			MOB.CurrentScore.Damage += MOB.CurrentScore.Damage * 30 / 100;
+			MOB.CurrentScore.Damage += MOB.CurrentScore.Damage * 10 / 100;
 			MOB.CurrentScore.MaxMp -= MOB.CurrentScore.MaxMp * 10 / 100;
 		}
 		//BM
 		if (MOB.Class == 2)
 		{
 			MOB.CurrentScore.Damage -= MOB.CurrentScore.Damage * 15 / 100;
-			MOB.CurrentScore.Ac -= MOB.CurrentScore.Ac * 15 / 100;
 		}
 		//HT
 		if (MOB.Class == 3)
@@ -4940,19 +4939,18 @@ void BASE_GetCurrentScore(STRUCT_MOB& MOB, STRUCT_AFFECT* Affect, STRUCT_MOBEXTR
 		//TK
 		if (MOB.Class == 0)
 		{
-			MOB.CurrentScore.Damage -= MOB.CurrentScore.Damage * 5 / 100;
+			// TK has no class damage modifier.
 		}
 		//FM
 		if (MOB.Class == 1)
 		{
-			MOB.CurrentScore.Damage += MOB.CurrentScore.Damage * 30 / 100;
+			MOB.CurrentScore.Damage += MOB.CurrentScore.Damage * 10 / 100;
 			MOB.CurrentScore.MaxMp -= MOB.CurrentScore.MaxMp * 10 / 100;
 		}
 		//BM
 		if (MOB.Class == 2)
 		{
 			MOB.CurrentScore.Damage -= MOB.CurrentScore.Damage * 15 / 100;
-			MOB.CurrentScore.Ac -= MOB.CurrentScore.Ac * 15 / 100;
 		}
 		//HT
 		if (MOB.Class == 3)
@@ -6221,7 +6219,7 @@ void BASE_InitializeEffectName()
 
 		if (val < 0 || val > MAX_EFFECTINDEX)
 		{
-			MessageBox(NULL, temp, "Effect.hÀÇ Define Value°¡ ¼ýÀÚ°¡ ¾Æ´Ï°Å³ª 0ÀÌÇÏ ¶Ç´Â MAX_EFFECTINDEXÀÌ»óÀÌ´Ù", MB_OK);
+			MessageBox(NULL, temp, "Effect.hï¿½ï¿½ Define Valueï¿½ï¿½ ï¿½ï¿½ï¿½Ú°ï¿½ ï¿½Æ´Ï°Å³ï¿½ 0ï¿½ï¿½ï¿½ï¿½ ï¿½Ç´ï¿½ MAX_EFFECTINDEXï¿½Ì»ï¿½ï¿½Ì´ï¿½", MB_OK);
 
 			continue;
 		}
@@ -7363,7 +7361,7 @@ void BASE_InitializeClientGuildName(int group)
 		int Server = -1;
 		int Guild = -1;
 
-		char szGuild[4][4096];
+		char szGuild[4][4096] = { 0, };
 		char str[1024];
 
 
@@ -7372,13 +7370,17 @@ void BASE_InitializeClientGuildName(int group)
 		if (ret == NULL)
 			break;
 
-		sscanf(str, "%d %d %d %s %s %s %s", &Group, &Server, &Guild, szGuild[0], szGuild[1], szGuild[2], szGuild[3]);
+		char* p = str;
+		while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')
+			p++;
 
-		if ((Group < 0 || Group >= MAX_SERVERGROUP || Server < 0 || Server >= 16) || (Guild < 0 || Guild >= MAX_GUILD) || szGuild[0][0] == 0)
-		{
-			MessageBoxA(NULL, str, "Can`t parse string in Guilds.txt", MB_OK);
+		if (*p == 0 || *p == '#' || *p == '/')
 			continue;
-		}
+
+		int parsed = sscanf(p, "%d %d %d %s %s %s %s", &Group, &Server, &Guild, szGuild[0], szGuild[1], szGuild[2], szGuild[3]);
+
+		if (parsed < 4 || (Group < 0 || Group >= MAX_SERVERGROUP || Server < 0 || Server >= 16) || (Guild < 0 || Guild >= MAX_GUILD) || szGuild[0][0] == 0)
+			continue;
 
 		if (Group != group)
 			continue;
@@ -7443,14 +7445,17 @@ void BASE_InitializeGuildName()
 		if (ret == NULL)
 			break;
 
-		sscanf(str, "%d %d %d %s", &Group, &Server, &Guild, szGuild);
+		char* p = str;
+		while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')
+			p++;
 
-		if ((Group < 0 || Group >= MAX_SERVERGROUP) || (Server < 0 || Server >= 16) || (Guild < 0 || Guild >= MAX_GUILD) || szGuild[0] == 0)
-		{
-			MessageBox(0, str, "Can't parse string in Guilds.txt", 0);
+		if (*p == 0 || *p == '#' || *p == '/')
+			continue;
 
-			break;
-		}
+		int parsed = sscanf(p, "%d %d %d %s", &Group, &Server, &Guild, szGuild);
+
+		if (parsed < 4 || (Group < 0 || Group >= MAX_SERVERGROUP) || (Server < 0 || Server >= 16) || (Guild < 0 || Guild >= MAX_GUILD) || szGuild[0] == 0)
+			continue;
 
 		int len = strlen(szGuild);
 
@@ -9011,11 +9016,11 @@ int BASE_VisualAnctCode(STRUCT_ITEM* Item)
 
 
 	if (Item->stEffect[0].cEffect >= 116 && Item->stEffect[0].cEffect <= 125)
-		return value = Item->stEffect[0].cEffect - 3;
+		return Item->stEffect[0].cEffect - 3;
 	if (Item->stEffect[1].cEffect >= 116 && Item->stEffect[1].cEffect <= 125)
-		return value = Item->stEffect[1].cEffect - 3;
+		return Item->stEffect[1].cEffect - 3;
 	if (Item->stEffect[2].cEffect >= 116 && Item->stEffect[2].cEffect <= 125)
-		return value = Item->stEffect[2].cEffect - 3;
+		return Item->stEffect[2].cEffect - 3;
 
 	if (value == 0)
 		return 0;

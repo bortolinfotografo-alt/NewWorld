@@ -8,9 +8,85 @@
 #include <time.h>
 #include <random>
 #include <ctime>
+#include <string.h>
 #include "SendFunc.h"
 #include "Functions.h"
 #include "wMySQL.h"
+
+static void CopyDropListName(char* dest, int destSize, const char* src, bool spacesToUnderscore)
+{
+	if (destSize <= 0)
+		return;
+
+	dest[0] = 0;
+
+	if (!src)
+		return;
+
+	int out = 0;
+	for (int i = 0; src[i] != 0 && out < destSize - 1; i++)
+	{
+		char ch = src[i];
+
+		if (ch == '\'' || ch == '"' || ch == '\\' || ch == ';')
+			continue;
+
+		if (spacesToUnderscore && ch == ' ')
+			ch = '_';
+
+		dest[out++] = ch;
+	}
+
+	dest[out] = 0;
+}
+
+static bool IsLichCruntName(const char* mobname)
+{
+	char normalized[32];
+	CopyDropListName(normalized, sizeof(normalized), mobname, true);
+
+	return _stricmp(normalized, "Lich_Crunt") == 0;
+}
+
+static bool FillLichCruntDropList(MSG_UpdateDropList* sm, const char* mobname)
+{
+	if (!IsLichCruntName(mobname))
+		return false;
+
+	const int items[] = { 2400, 2405, 2441, 2442, 2443, 2444, 412, 413, 1741, 671, 670 };
+
+	for (int i = 0; i < sizeof(items) / sizeof(items[0]); i++)
+		sm->Item[i] = items[i];
+
+	return true;
+}
+
+static bool DropListHasMobName(const MSG_SendDListNames* packet, const char* mobname)
+{
+	for (int i = 0; i < 30; i++)
+	{
+		if (packet->MobName[i][0] != 0 && _stricmp(packet->MobName[i], mobname) == 0)
+			return true;
+	}
+
+	return false;
+}
+
+static void ForceMobName(MSG_SendDListNames* packet, int* mobCount, const char* mobname)
+{
+	if (DropListHasMobName(packet, mobname))
+		return;
+
+	int index = *mobCount;
+	if (index >= 30)
+		index = 29;
+
+	strncpy(packet->MobName[index], mobname, sizeof(packet->MobName[index]) - 1);
+	packet->MobName[index][sizeof(packet->MobName[index]) - 1] = 0;
+
+	if (*mobCount < 30)
+		(*mobCount)++;
+}
 
 void UpdateDropList(int conn, const char* mobname, int region)
 {
@@ -22,20 +98,32 @@ void UpdateDropList(int conn, const char* mobname, int region)
 
 	auto& pc = cSQL::instance();
 
-	sprintf(xQuery, "SELECT * FROM `droplist` WHERE `nome` = '%s'", mobname);
+	char safeName[32];
+	char safeNameAlt[32];
+	CopyDropListName(safeName, sizeof(safeName), mobname, false);
+	CopyDropListName(safeNameAlt, sizeof(safeNameAlt), mobname, true);
+
+	sprintf(xQuery,
+		"SELECT * FROM `droplist` WHERE `nome` = '%s' OR `nome` = '%s' OR REPLACE(`nome`, '_', ' ') = '%s' LIMIT 1",
+		safeName,
+		safeNameAlt,
+		safeName);
 
 	MYSQL_ROW row;
 	MYSQL* wSQL = pc.wStart();
 	MYSQL_RES* result = pc.wRes(wSQL, xQuery);
 
-	if (result == NULL)
+	if (result == NULL && !FillLichCruntDropList(&sm, mobname))
 		return;
 
 	int Slot = 0;
 	int Index = 0;
+	bool found = false;
 
-	while ((row = mysql_fetch_row(result)) != NULL)
+	while (result != NULL && (row = mysql_fetch_row(result)) != NULL)
 	{
+		found = true;
+
 		for (int k = 0; k < MAX_CARRY; k++) {
 
 			Index = atoi(row[k + 3]);
@@ -49,10 +137,16 @@ void UpdateDropList(int conn, const char* mobname, int region)
 			if (Index < 400)
 				continue;
 
+			if (Slot >= 64)
+				break;
+
 			sm.Item[Slot] = Index;
 			Slot++;
 		}
 	}	
+
+	if (!found)
+		FillLichCruntDropList(&sm, mobname);
 
 	int Size = sm.Size;
 
@@ -140,7 +234,7 @@ void ReqdListNames(int conn, char* pMsg)
 
 	auto& pc = cSQL::instance();
 
-	sprintf(xQuery, "SELECT * FROM `droplist` WHERE `region` = %d LIMIT 30", region);
+	sprintf(xQuery, "SELECT * FROM `droplist` WHERE `region` = %d ORDER BY `nome` ASC LIMIT 30", region);
 
 	MYSQL_ROW row;
 	MYSQL* wSQL = pc.wStart();
@@ -151,9 +245,16 @@ void ReqdListNames(int conn, char* pMsg)
 
 	while ((row = mysql_fetch_row(result)) != NULL)
 	{
-		strncpy(p.MobName[mob], row[1], 16);
+		if (mob >= 30)
+			break;
+
+		strncpy(p.MobName[mob], row[1], sizeof(p.MobName[mob]) - 1);
+		p.MobName[mob][sizeof(p.MobName[mob]) - 1] = 0;
 		mob++;
 	}	
+
+	if (region == 8)
+		ForceMobName(&p, &mob, "Lich_Crunt");
 
 	int Size = p.Size;
 	if (Size > sizeof(MSG_SendDListNames))

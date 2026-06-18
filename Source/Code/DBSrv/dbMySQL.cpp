@@ -18,25 +18,33 @@ MYSQL* cSQL::wStart()
 {
 
 	MYSQL* wSQL = mysql_init(NULL);
+	if (wSQL == NULL)
+		return NULL;
 
 	try
 	{
 		my_bool reconnect = 1;
+		unsigned int connectTimeout = 5;
 		mysql_options(wSQL, MYSQL_OPT_RECONNECT, &reconnect);
 		mysql_options(wSQL, MYSQL_OPT_COMPRESS, 0);
-		mysql_options(wSQL, MYSQL_OPT_CONNECT_TIMEOUT, "300");
+		mysql_options(wSQL, MYSQL_OPT_CONNECT_TIMEOUT, &connectTimeout);
 
 		if (!mysql_real_connect(wSQL, HOST, USER, PASS, DB, PORT, NULL, 0))
 		{
 			printf("[wMySQL][TMSVR] Ocorreu um erro na conexão.\n\t\tErro: %s\n", mysql_error(wSQL));
-			return wSQL;
+			mysql_close(wSQL);
+			return NULL;
 		}
+
+		mysql_autocommit(wSQL, 1);
+		mysql_query(wSQL, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED");
 
 		return wSQL;
 	}
 	catch (...)
 	{
-		return wSQL;
+		mysql_close(wSQL);
+		return NULL;
 	}
 }
 
@@ -44,6 +52,9 @@ MYSQL_RES* cSQL::wRes(MYSQL* sql, char* query)
 {
 
 	try {
+		if (sql == NULL)
+			return NULL;
+
 		if (mysql_query(sql, query))
 		{
 			printf("[dbMySQL][wRes] Erro na execução da wRes.\n\t\tErro: %s\n", mysql_error(sql));
@@ -84,6 +95,8 @@ void cSQL::wLog(char* acc, char* pers, char* mensagem, char* type)
 	auto& pc = cSQL::instance();
 
 	MYSQL* wSQL = pc.wStart();
+	if (wSQL == NULL)
+		return;
 
 	if (mysql_query(wSQL, xQuery))
 	{
@@ -107,6 +120,8 @@ bool cSQL::wQuery(char* query)
 		auto& pc = cSQL::instance();
 
 		MYSQL* wSQL = pc.wStart();
+		if (wSQL == NULL)
+			return FALSE;
 
 		if (mysql_query(wSQL, query))
 		{

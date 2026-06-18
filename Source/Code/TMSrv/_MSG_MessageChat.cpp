@@ -21,12 +21,27 @@ void Exec_MSG_MessageChat(int conn, char* pMsg)
 		return;
 	}
 
-	char szCmd[256];
-	char szString[256];
+	char szCmd[256] = {};
+	char szString[256] = {};
 
 	sscanf(m->String, "%s %s", szCmd, szString);
 
 
+
+	if (strcmp(szCmd, "fecharloja") == 0 || strcmp(szCmd, "/fecharloja") == 0 ||
+		strcmp(szCmd, "lojafechar") == 0 || strcmp(szCmd, "/lojafechar") == 0 ||
+		strcmp(szCmd, "closeloja") == 0 || strcmp(szCmd, "/closeloja") == 0)
+	{
+		if (!IsAutoTradeActive(conn))
+		{
+			SendClientMessage(conn, "Voce nao possui lojinha aberta.");
+			return;
+		}
+
+		RemoveTrade(conn);
+		SendClientMessage(conn, "Lojinha fechada.");
+		return;
+	}
 
 	if (strcmp(szCmd, "guildon") == 0)
 	{

@@ -16,6 +16,7 @@
 #define ITEMLEVEL 9
 #define SENDPIX 10
 #define OPEMPIX 11
+#define COMMANDS 12
 
 #define ARMIA 100
 #define ARZAN 101
@@ -35,8 +36,459 @@
 #define JEPHIBUTTON 115
 #define TRAJEBUTTON 116
 #define CAPTCHABUTTON 117
+#define MODOFOTO 120
+#define OPENCOMMANDS 121
+
+static void SetCommandsText(int Handle, const char* Text)
+{
+	auto Label = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(Handle);
+	if (Label)
+		Label->setConstString("%s", Text);
+}
+
+static int NormalizeRankingButtonClass(int value)
+{
+	if (value < 0 || value > 3)
+		return 0;
+
+	return value;
+}
+
+static int NormalizeRankingButtonEvolution(int value)
+{
+	if (value < 1 || value > 5)
+		return 1;
+
+	return value;
+}
+
+static const char* GetRankingButtonClassName(int value)
+{
+	static const char* Classe[4] = { "TK", "FM", "BM", "HT" };
+	return Classe[NormalizeRankingButtonClass(value)];
+}
+
+static const char* GetRankingButtonEvolutionName(int value)
+{
+	static const char* Evolution[5] = { "Mortal", "Arch", "Celestial", "CelestialCS", "SubCelestial" };
+	return Evolution[NormalizeRankingButtonEvolution(value) - 1];
+}
+
+static void SetRankingButtonPageText(int Page)
+{
+	auto Label = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(1919420);
+	if (Label)
+		Label->setConstString("%d", Page);
+}
+
+static void SetRankingButtonRow(int Handle, int Position, const char* Name, int Value, int Evolution, int Classe)
+{
+	auto Label = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(Handle);
+	if (!Label)
+		return;
+
+	const char* SafeName = Name && Name[0] ? Name : "-";
+	Label->setConstString("%d. [%s][%d][%s][%s]",
+		Position, SafeName, Value, GetRankingButtonEvolutionName(Evolution), GetRankingButtonClassName(Classe));
+}
+
+static void RenderRankingButtonPage(int StartIndex)
+{
+	if (StartIndex < 0)
+		StartIndex = 0;
+
+	if (StartIndex > 40)
+		StartIndex = 40;
+
+	int State = g_pClientInfo->Ranking.State == 1 ? 1 : 0;
+
+	for (int i = 0; i < 10; i++)
+	{
+		int Index = StartIndex + i;
+		int Value = State == 1 ? g_pClientInfo->Ranking.PvP[Index] : g_pClientInfo->Ranking.RankLevel[Index];
+
+		SetRankingButtonRow(1919410 + i, Index + 1, g_pClientInfo->Ranking.RankName[Index], Value,
+			g_pClientInfo->Ranking.RankEvolution[Index], g_pClientInfo->Ranking.RankClasse[Index]);
+	}
+}
+
+struct CommandPanelLayout
+{
+	int Handle;
+	float Left;
+	float Top;
+	float Width;
+	float Height;
+	float ViewLeft;
+	float ViewTop;
+	float ViewWidth;
+	float ViewHeight;
+};
+
+static CommandPanelLayout CommandsPanelLayout[21];
+static bool CommandsPanelLayoutSaved = false;
+
+static void SaveCommandControlLayout(int Index, int Handle)
+{
+	auto Control = g_pInterface->Instance()->getGuiFromHandle<UIControl>(Handle);
+	CommandsPanelLayout[Index].Handle = Handle;
+
+	if (!Control)
+		return;
+
+	CommandsPanelLayout[Index].Left = Control->Left;
+	CommandsPanelLayout[Index].Top = Control->Top;
+	CommandsPanelLayout[Index].Width = Control->Width;
+	CommandsPanelLayout[Index].Height = Control->Height;
+	CommandsPanelLayout[Index].ViewLeft = Control->ViewLeft;
+	CommandsPanelLayout[Index].ViewTop = Control->ViewTop;
+	CommandsPanelLayout[Index].ViewWidth = Control->ViewWidth;
+	CommandsPanelLayout[Index].ViewHeight = Control->ViewHeight;
+}
+
+static void SaveCommandsPanelLayout()
+{
+	if (CommandsPanelLayoutSaved)
+		return;
+
+	for (int i = 0; i < 10; i++)
+	{
+		SaveCommandControlLayout(i, 179501 + i);
+		SaveCommandControlLayout(10 + i, 179511 + i);
+	}
+
+	SaveCommandControlLayout(20, 179521);
+	CommandsPanelLayoutSaved = true;
+}
+
+static void RestoreCommandsPanelLayout()
+{
+
+	if (!CommandsPanelLayoutSaved)
+		return;
+
+	for (int i = 0; i < 21; i++)
+	{
+		auto Control = g_pInterface->Instance()->getGuiFromHandle<UIControl>(CommandsPanelLayout[i].Handle);
+		if (!Control)
+			continue;
+
+		Control->Left = CommandsPanelLayout[i].Left;
+		Control->Top = CommandsPanelLayout[i].Top;
+		Control->Width = CommandsPanelLayout[i].Width;
+		Control->Height = CommandsPanelLayout[i].Height;
+		Control->ViewLeft = CommandsPanelLayout[i].ViewLeft;
+		Control->ViewTop = CommandsPanelLayout[i].ViewTop;
+		Control->ViewWidth = CommandsPanelLayout[i].ViewWidth;
+		Control->ViewHeight = CommandsPanelLayout[i].ViewHeight;
+	}
+}
+
+static void SetCommandControlBounds(int Handle, float Left, float Width)
+{
+	auto Control = g_pInterface->Instance()->getGuiFromHandle<UIControl>(Handle);
+	if (!Control)
+		return;
+
+	Control->Left = Left;
+	Control->Width = Width;
+	Control->ViewLeft = Left;
+	Control->ViewWidth = Width;
+}
+
+static void AnchorPageControlToPager()
+{
+	auto Page = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179521);
+	auto Prev = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179530);
+	auto Next = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179531);
+	if (!Page || !Prev || !Next)
+		return;
+
+	float Left = Prev->Left + Prev->Width;
+	float Width = Next->Left - Left;
+	if (Width < 12.0f || Width > 80.0f)
+		return;
+
+	Page->Left = Left;
+	Page->Width = Width;
+	Page->ViewLeft = Left;
+	Page->ViewWidth = Width;
+	Page->PosX = Prev->PosX + (UINT32)Prev->Width;
+}
+
+static void ApplyCommandsPanelLayout()
+{
+	SaveCommandsPanelLayout();
+	RestoreCommandsPanelLayout();
+
+	for (int i = 0; i < 10; i++)
+	{
+		auto Button = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179501 + i);
+		auto Label = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179511 + i);
+		if (!Button || !Label)
+			continue;
+
+		float Left = Button->Left + 7.0f;
+		float Width = Button->Width > 14.0f ? Button->Width - 14.0f : Button->Width;
+
+		Label->Left = Left;
+		Label->Width = Width;
+		Label->ViewLeft = Left;
+		Label->ViewWidth = Width;
+		Label->PosX = Button->PosX + 7;
+	}
+
+	AnchorPageControlToPager();
+}
+
+static void ClearDropListGrid()
+{
+	auto DropListGrid = g_pInterface->Instance()->getGuiFromHandle<UISlot>(179600);
+	if (!DropListGrid)
+		return;
+
+	*(int*)((int)DropListGrid + 0x400) = 0x5;
+	DropListGrid->deleteItems();
+}
+
+static void SetDropListCityPage(int Page)
+{
+	ApplyCommandsPanelLayout();
+
+	if (Page < 0)
+		Page = 0;
+	if (Page > 1)
+		Page = 1;
+
+	ConfigR::WindowControl = DROPLIST;
+	ConfigR::DropListRegion = 0;
+	ConfigR::DropListPage = Page;
+
+	auto NewWindowTX1 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179511);
+	auto NewWindowTX2 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179512);
+	auto NewWindowTX3 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179513);
+	auto NewWindowTX4 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179514);
+	auto NewWindowTX5 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179515);
+	auto NewWindowTX6 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179516);
+	auto NewWindowTX7 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179517);
+	auto NewWindowTX8 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179518);
+	auto NewWindowTX9 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179519);
+	auto NewWindowTX10 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179520);
+	auto PageTx = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179521);
+
+	if (Page == 0)
+	{
+		if (NewWindowTX1) NewWindowTX1->setConstString("Armia");
+		if (NewWindowTX2) NewWindowTX2->setConstString("Erion");
+		if (NewWindowTX3) NewWindowTX3->setConstString("Arzan");
+		if (NewWindowTX4) NewWindowTX4->setConstString("Deserto");
+		if (NewWindowTX5) NewWindowTX5->setConstString("Gelo");
+		if (NewWindowTX6) NewWindowTX6->setConstString("Dungeon");
+		if (NewWindowTX7) NewWindowTX7->setConstString("Submundo");
+		if (NewWindowTX8) NewWindowTX8->setConstString("Kefra");
+		if (NewWindowTX9) NewWindowTX9->setConstString("Lan N");
+		if (NewWindowTX10) NewWindowTX10->setConstString("Lan M");
+	}
+	else
+	{
+		if (NewWindowTX1) NewWindowTX1->setConstString("Lan A");
+		if (NewWindowTX2) NewWindowTX2->setConstString("Vale");
+		if (NewWindowTX3) NewWindowTX3->setConstString("");
+		if (NewWindowTX4) NewWindowTX4->setConstString("");
+		if (NewWindowTX5) NewWindowTX5->setConstString("");
+		if (NewWindowTX6) NewWindowTX6->setConstString("");
+		if (NewWindowTX7) NewWindowTX7->setConstString("");
+		if (NewWindowTX8) NewWindowTX8->setConstString("");
+		if (NewWindowTX9) NewWindowTX9->setConstString("");
+		if (NewWindowTX10) NewWindowTX10->setConstString("");
+	}
+
+	if (PageTx)
+		PageTx->setConstString("%d/2", (ConfigR::DropListPage + 1));
+}
+
+static void ApplyCommandsTextCenteredLayout(float ColWidth)
+{
+	auto Grid = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179600);
+
+	float GrayLeft;
+	float GrayWidth;
+
+	if (Grid && Grid->Width > 20.0f)
+	{
+		GrayLeft = Grid->Left;
+		GrayWidth = Grid->Width;
+	}
+	else
+	{
+		auto Panel = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179500);
+		auto Button = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179501);
+		if (!Panel || !Button)
+			return;
+
+		float ButtonsRight = Button->Left + Button->Width;
+		GrayLeft = ButtonsRight;
+		GrayWidth = (Panel->Left + Panel->Width) - ButtonsRight;
+	}
+
+	if (GrayWidth < 40.0f)
+		return;
+
+	// ColWidth vem por parametro
+	float Left = GrayLeft + (GrayWidth - ColWidth) * 0.5f;
+	if (Left < GrayLeft)
+		Left = GrayLeft;
+
+	for (int i = 0; i < 10; i++)
+	{
+		auto Label = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179511 + i);
+		if (!Label)
+			continue;
+
+		Label->Left = Left;
+		Label->Width = ColWidth;
+		Label->ViewLeft = Left;
+		Label->ViewWidth = ColWidth;
+		Label->PosX = (UINT32)Left;
+	}
+}
+static void OpenCommandsPanel()
+{
+	auto DropList = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179500);
+	if (!DropList)
+	{
+		SendMsgExp(TNColor::Red, (char*)"Painel de comandos nao encontrado.");
+		return;
+	}
+
+	ConfigR::WindowControl = COMMANDS;
+	ConfigR::DropListPage = 0;
+	ConfigR::DropListRegion = 0;
+
+	ApplyCommandsPanelLayout();
+
+	SetCommandsText(179511, "01 /novato - recompensa inicial");
+	SetCommandsText(179512, "02 /online - jogadores online");
+	SetCommandsText(179513, "03 /saldo - honra e fama");
+	SetCommandsText(179514, "04 /filtro - liga/desliga filtro");
+	SetCommandsText(179515, "05 /limpar - limpa filtro drop");
+	SetCommandsText(179516, "06 /grupo - senha do grupo");
+	SetCommandsText(179517, "07 /entrar - entrar grupo");
+	SetCommandsText(179518, "08 /sair - sair/transferir");
+	SetCommandsText(179519, "09 /closeloja - fechar lojinha");
+	SetCommandsText(179520, "10 /macroperga - on/off");
+	SetCommandsText(179521, "Comandos");
+
+	ApplyCommandsTextCenteredLayout(230.0f);
+
+	DropList->IsVisible = true;
+}
+
+static void SetRankingFallbackText(int Handle, const char* Format, ...)
+{
+	auto Label = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(Handle);
+	if (!Label)
+		return;
+
+	char Buffer[128] = { 0 };
+	va_list Args;
+	va_start(Args, Format);
+	int Size = vsprintf_s(Buffer, Format, Args);
+	va_end(Args);
+
+	if (Size < 0 || Size >= sizeof(Buffer))
+		return;
+
+	Label->setText(Buffer);
+}
+
+static void RenderRankingFallbackPage(int StartIndex)
+{
+	if (StartIndex < 0)
+		StartIndex = 0;
+
+	if (StartIndex > 40)
+		StartIndex = 40;
+
+	int State = g_pClientInfo->Ranking.State == 1 ? 1 : 0;
+	SetRankingFallbackText(179521, "Ranking %s  %d/5", State == 1 ? "PvP" : "Level", ConfigR::RankingPage);
+
+	for (int i = 0; i < 10; i++)
+	{
+		int Index = StartIndex + i;
+		int Value = State == 1 ? g_pClientInfo->Ranking.PvP[Index] : g_pClientInfo->Ranking.RankLevel[Index];
+		const char* SafeName = g_pClientInfo->Ranking.RankName[Index][0] ? g_pClientInfo->Ranking.RankName[Index] : "-";
+
+		SetRankingFallbackText(179511 + i, "%02d. %s  %s %d  %s  %s",
+			Index + 1,
+			SafeName,
+			State == 1 ? "PvP" : "Lv",
+			Value,
+			GetRankingButtonEvolutionName(g_pClientInfo->Ranking.RankEvolution[Index]),
+			GetRankingButtonClassName(g_pClientInfo->Ranking.RankClasse[Index]));
+	}
+	ApplyCommandsTextCenteredLayout(250.0f);
+}
+
+static bool OpenRankingFallbackPanel()
+{
+	auto DropList = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179500);
+	if (!DropList)
+		return false;
+
+	ConfigR::WindowControl = RANKING;
+	ConfigR::DropListPage = 0;
+	ConfigR::DropListRegion = 0;
+
+	ApplyCommandsPanelLayout();
+	ClearDropListGrid();
+	RenderRankingFallbackPage((ConfigR::RankingPage - 1) * 10);
+
+	DropList->IsVisible = true;
+	return true;
+}
+
+static void HideControl(UIControl* Control)
+{
+	if (Control)
+		Control->IsVisible = false;
+}
 
 
+
+static bool IsNativeAutoTradeCreateButton(int Handle)
+{
+	return Handle == 65790;
+}
+
+static void LogAutoTradeMinibarClick(int Handle, bool Blocked)
+{
+	if (Handle < 65788 || Handle > 65800)
+		return;
+
+	FILE* file = fopen("autotrade-click.log", "a");
+	if (!file)
+		return;
+
+	fprintf(file, "tick=%lu handle=%d blocked=%d\n", GetTickCount(), Handle, Blocked ? 1 : 0);
+	fclose(file);
+}
+
+static bool BlockAutoTradeCreateIfOpen(int Handle)
+{
+	if (!ConfigR::gModoLoja)
+		return false;
+
+	const bool blocked = IsNativeAutoTradeCreateButton(Handle);
+	LogAutoTradeMinibarClick(Handle, blocked);
+
+	if (!blocked)
+		return false;
+
+	SendMsgExp(TNColor::NewYellow, (char*)"Voce ja possui lojinha aberta.");
+	SendMsgExp(TNColor::GreenYellow, (char*)"Para encerrar, use /closeloja.");
+	return true;
+}
 BOOL __stdcall HKD_ControlEventClick(int Handle, int Scene)//by seitbnao
 {
 	//printf("\nHandle: %d Scene: %d\n", Handle, Scene);
@@ -62,15 +514,17 @@ BOOL __stdcall HKD_ControlEventClick(int Handle, int Scene)//by seitbnao
 	auto DropList = g_pInterface->Instance()->getGuiFromHandle<UIControl>(179500);
 	auto PainelPix = g_pInterface->Instance()->getGuiFromHandle<UIControl>(188500);
 	auto PainelTrajes = g_pInterface->Instance()->getGuiFromHandle<UIControl>(1882000);
-	//auto PainelRanking = g_pInterface->Instance()->getGuiFromHandle<UIControl>(1919400);
+	auto PainelRanking = g_pInterface->Instance()->getGuiFromHandle<UIControl>(1919400);
 	auto PainelCaptcha = g_pInterface->Instance()->getGuiFromHandle<UIControl>(1319001);
 
 	auto PainelJephi = g_pInterface->Instance()->getGuiFromHandle<UIControl>(117900);
 	auto MailPainel = g_pInterface->Instance()->getGuiFromHandle<UIControl>(121200);
 	auto MailButton = g_pInterface->Instance()->getGuiFromHandle<UIControl>(1212300);
 	
-	
 	SendHandleID = Handle;
+
+	if (BlockAutoTradeCreateIfOpen(Handle))
+		return false;
 
 	if (SendHandleID == 65646)
 		SendHandleID = ENTERWORLD;
@@ -127,10 +581,10 @@ BOOL __stdcall HKD_ControlEventClick(int Handle, int Scene)//by seitbnao
 		SendHandleID = FILTROBTN;
 
 	if (SendHandleID == 981310)
-		SendHandleID = OPENPVPRANKING;
+		SendHandleID = OPENRANKING;
 
 	if (SendHandleID == 981311)
-		SendHandleID = OPENRANKING;
+		SendHandleID = OPENCOMMANDS;
 
 	if (SendHandleID == 981308)
 		SendHandleID = OPENSTORE;
@@ -143,6 +597,9 @@ BOOL __stdcall HKD_ControlEventClick(int Handle, int Scene)//by seitbnao
 
 	if (SendHandleID == 981309)
 		SendHandleID = OPEMPIX;
+
+	if (AutoTradePreviewTryCloseFromClick())
+		return false;
 
 	int DonateButton = 0;
 
@@ -194,8 +651,71 @@ BOOL __stdcall HKD_ControlEventClick(int Handle, int Scene)//by seitbnao
 		MailPainel->IsVisible = false;
 		MailButton->IsVisible = false;
 		PainelTrajes->IsVisible = false;
-		//PainelRanking->IsVisible = false;
+		if (PainelRanking)
+			PainelRanking->IsVisible = false;
 		//PainelCaptcha->IsVisible = false;
+	}break;
+	case MODOFOTO:
+	{
+		auto CHATBTS = g_pInterface->Instance()->getGuiFromHandle<UIControl>(65672);
+		auto CHATBTCOMUM = g_pInterface->Instance()->getGuiFromHandle<UIControl>(90113);
+		auto CHATGUIA = g_pInterface->Instance()->getGuiFromHandle<UIControl>(65667);
+		auto CHATFUNDO = g_pInterface->Instance()->getGuiFromHandle<UIControl>(65943);
+		auto CHATDIGITAR = g_pInterface->Instance()->getGuiFromHandle<UIControl>(65670);
+		auto personagem = g_pInterface->getGuiFromHandle<UIControl>(65696);
+		auto CloseChat = g_pInterface->getGuiFromHandle<UIControl>(190200);
+		auto EMF1 = g_pInterface->Instance()->getGuiFromHandle<UIControl>(65628);
+		auto EMF3 = g_pInterface->Instance()->getGuiFromHandle<UIControl>(69633);
+		auto EMF6 = g_pInterface->Instance()->getGuiFromHandle<UIControl>(65796);
+		auto EMF7 = g_pInterface->Instance()->getGuiFromHandle<UIControl>(65795);
+		auto EMF8 = g_pInterface->Instance()->getGuiFromHandle<UIControl>(65794);
+		auto EMF9 = g_pInterface->Instance()->getGuiFromHandle<UIControl>(65793);
+		auto EMF10 = g_pInterface->Instance()->getGuiFromHandle<UIControl>(65790);
+		auto EMF11 = g_pInterface->Instance()->getGuiFromHandle<UIControl>(65791);
+		auto bufftempo = g_pInterface->getGuiFromHandle<UIControl>(5749);
+		ConfigR::gModoFoto = !ConfigR::gModoFoto;
+		SendMsgExp(TNColor::Default, (char*)"___");
+		SendMsgExp(TNColor::Default, (char*)"___");
+		SendMsgExp(TNColor::Default, (char*)"___");
+		SendMsgExp(TNColor::Default, (char*)"___");
+		SendMsgExp(TNColor::Default, (char*)"___");
+		SendMsgExp(TNColor::Default, (char*)"___");
+		if (ConfigR::gModoFoto == TRUE)
+		{
+			CHATBTS->IsVisible = false;
+			CHATGUIA->IsVisible = false;
+			CHATFUNDO->IsVisible = false;
+			CHATDIGITAR->IsVisible = false;
+			CHATBTCOMUM->IsVisible = false;
+			personagem->IsVisible = false;
+			EMF1->IsVisible = false;
+			EMF3->IsVisible = false;
+			EMF6->IsVisible = false;
+			EMF7->IsVisible = false;
+			EMF8->IsVisible = false;
+			EMF9->IsVisible = false;
+			EMF10->IsVisible = false;
+			EMF11->IsVisible = false;
+			bufftempo->IsVisible = false;
+			GamePainel->IsVisible = false;
+			CloseChat->IsVisible = false;
+		}
+		else
+		{
+			CHATBTS->IsVisible = true;
+			CHATGUIA->IsVisible = true;
+			CHATFUNDO->IsVisible = true;
+			EMF1->IsVisible = true;
+			EMF3->IsVisible = true;
+			EMF6->IsVisible = true;
+			EMF7->IsVisible = true;
+			EMF8->IsVisible = true;
+			EMF9->IsVisible = true;
+			EMF10->IsVisible = true;
+			EMF11->IsVisible = true;
+			bufftempo->IsVisible = true;
+			CloseChat->IsVisible = true;
+		}
 	}break;
 	case TRAJEBUTTON :
 	{
@@ -206,10 +726,10 @@ BOOL __stdcall HKD_ControlEventClick(int Handle, int Scene)//by seitbnao
 	case CAPTCHABUTTON:
 	{
 		/*char words[24][6] = {
-			"AVIÃO", "BARCO", "MOTO", "BIKE", "CARRO", "TREM",
-			"CARRO", "TREM", "BIKE", "AVIÃO", "MOTO", "BARCO",
-			"MOTO", "CARRO", "AVIÃO", "BARCO", "TREM", "BIKE",
-			"BIKE", "AVIÃO", "TREM", "MOTO", "BARCO", "CARRO"
+			"AVIï¿½O", "BARCO", "MOTO", "BIKE", "CARRO", "TREM",
+			"CARRO", "TREM", "BIKE", "AVIï¿½O", "MOTO", "BARCO",
+			"MOTO", "CARRO", "AVIï¿½O", "BARCO", "TREM", "BIKE",
+			"BIKE", "AVIï¿½O", "TREM", "MOTO", "BARCO", "CARRO"
 		};*/
 
 		/*int Pos[4][6] = {
@@ -225,12 +745,69 @@ BOOL __stdcall HKD_ControlEventClick(int Handle, int Scene)//by seitbnao
 	}break;
 	case OPENRANKING:
 	{
-		/*GamePainel->IsVisible = false;
-		PainelRanking->IsVisible = true;
-		ReqAlias(4);*/
+		ConfigR::WindowControl = RANKING;
+		ConfigR::RankingPage = 1;
+
+		HideControl(PainelInv);
+		HideControl(painelteleport);
+		HideControl(StorePainel);
+		HideControl(BuyConfirm);
+		HideControl(DropList);
+		HideControl(PainelPix);
+		HideControl(PainelTrajes);
+		HideControl(PainelJephi);
+		HideControl(MailPainel);
+		HideControl(MailButton);
+		HideControl(GamePainel);
+
+		ReqAlias(4);
+
+		if (PainelRanking)
+		{
+			PainelRanking->IsVisible = true;
+			SetRankingButtonPageText(ConfigR::RankingPage);
+			RenderRankingButtonPage(0);
+		}
+		else if (!OpenRankingFallbackPanel())
+			SendMsgExp(TNColor::Red, (char*)"Painel de lista do ranking nao encontrado.");
+	}break;
+	case OPENCOMMANDS:
+	{
+		if (PainelInv)
+			PainelInv->IsVisible = false;
+		if (StorePainel)
+			StorePainel->IsVisible = false;
+		if (BuyConfirm)
+			BuyConfirm->IsVisible = false;
+		if (DropList)
+			DropList->IsVisible = false;
+		if (PainelPix)
+			PainelPix->IsVisible = false;
+		if (PainelJephi)
+			PainelJephi->IsVisible = false;
+		if (PainelTrajes)
+			PainelTrajes->IsVisible = false;
+		if (MailPainel)
+			MailPainel->IsVisible = false;
+		if (MailButton)
+			MailButton->IsVisible = false;
+		if (GamePainel)
+			GamePainel->IsVisible = false;
+
+		OpenCommandsPanel();
 	}break;
 	case 1919430: //Ranking - Anterior
 	{
+		if (ConfigR::WindowControl == COMMANDS)
+			break;
+
+		if (ConfigR::RankingPage >= 2) {
+			ConfigR::RankingPage = ConfigR::RankingPage - 1;
+			SetRankingButtonPageText(ConfigR::RankingPage);
+			RenderRankingButtonPage((ConfigR::RankingPage - 1) * 10);
+		}
+		break;
+
 		char Evolution[5][15] = { "Mortal", "Arch", "Celestial", "CelestialCS", "SubCelestial" };
 		char Classe[4][4] = { "TK", "FM", "BM", "HT" };
 
@@ -267,8 +844,18 @@ BOOL __stdcall HKD_ControlEventClick(int Handle, int Scene)//by seitbnao
 			}
 		}
 	}break;
-	case 1919431: //Ranking - Avançar
+	case 1919431: //Ranking - Avanï¿½ar
 	{
+		if (ConfigR::WindowControl == COMMANDS)
+			break;
+
+		if (ConfigR::RankingPage < 5) {
+			ConfigR::RankingPage = ConfigR::RankingPage + 1;
+			SetRankingButtonPageText(ConfigR::RankingPage);
+			RenderRankingButtonPage((ConfigR::RankingPage - 1) * 10);
+		}
+		break;
+
 		char Evolution[5][15] = { "Mortal", "Arch", "Celestial", "CelestialCS", "SubCelestial" };
 		char Classe[4][4] = { "TK", "FM", "BM", "HT" };
 
@@ -446,6 +1033,8 @@ BOOL __stdcall HKD_ControlEventClick(int Handle, int Scene)//by seitbnao
 	}break;
 	case OPENDROPLIST:
 	{
+		RestoreCommandsPanelLayout();
+
 		auto Grupo = g_pInterface->Instance()->getGuiFromHandle<UIControl>(475136);
 		auto Compositor = g_pInterface->Instance()->getGuiFromHandle<UIControl>(81921);
 		auto Compositor2 = g_pInterface->Instance()->getGuiFromHandle<UIControl>(6432);
@@ -474,37 +1063,23 @@ BOOL __stdcall HKD_ControlEventClick(int Handle, int Scene)//by seitbnao
 		StorePainel->IsVisible = false;
 
 		DropList->IsVisible = true;
-		ConfigR::DropListPage = 0;
-		ConfigR::DropListRegion = 0;
-
-		auto NewWindowTX1 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179511);
-		auto NewWindowTX2 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179512);
-		auto NewWindowTX3 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179513);
-		auto NewWindowTX4 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179514);
-		auto NewWindowTX5 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179515);
-		auto NewWindowTX6 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179516);
-		auto NewWindowTX7 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179517);
-		auto NewWindowTX8 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179518);
-		auto NewWindowTX9 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179519);
-		auto NewWindowTX10 = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179520);
-
-		NewWindowTX1->setConstString("Armia");
-		NewWindowTX2->setConstString("Erion");
-		NewWindowTX3->setConstString("Arzan");
-		NewWindowTX4->setConstString("Deserto");
-		NewWindowTX5->setConstString("Gelo");
-		NewWindowTX6->setConstString("Dungeon");
-		NewWindowTX7->setConstString("Submundo");
-		NewWindowTX8->setConstString("Kefra");
-		NewWindowTX9->setConstString("Lan N");
-		NewWindowTX10->setConstString("Lan M");
-
-		auto PageTx = g_pInterface->Instance()->getGuiFromHandle<UITextControl>(179521);
-		PageTx->setConstString("%d/2", (ConfigR::DropListPage + 1));
+		SetDropListCityPage(0);
 	}break;
 	case 179531:
 	{
+		if (ConfigR::WindowControl == COMMANDS)
+			break;
+
+		if (ConfigR::WindowControl == RANKING) {
+			if (ConfigR::RankingPage < 5)
+				ConfigR::RankingPage++;
+
+			RenderRankingFallbackPage((ConfigR::RankingPage - 1) * 10);
+			break;
+		}
+
 		ConfigR::DropListPage++;
+		ApplyCommandsPanelLayout();
 
 		if (ConfigR::DropListRegion == 0) {
 
@@ -570,7 +1145,19 @@ BOOL __stdcall HKD_ControlEventClick(int Handle, int Scene)//by seitbnao
 	}break;
 	case 179530:
 	{
+		if (ConfigR::WindowControl == COMMANDS)
+			break;
+
+		if (ConfigR::WindowControl == RANKING) {
+			if (ConfigR::RankingPage > 1)
+				ConfigR::RankingPage--;
+
+			RenderRankingFallbackPage((ConfigR::RankingPage - 1) * 10);
+			break;
+		}
+
 		ConfigR::DropListPage--;
+		ApplyCommandsPanelLayout();
 
 		if (ConfigR::DropListRegion == 0) {
 
@@ -637,6 +1224,9 @@ BOOL __stdcall HKD_ControlEventClick(int Handle, int Scene)//by seitbnao
 	}break;
 	case DROPLISTBUTTON:
 	{
+		if (ConfigR::WindowControl == COMMANDS || ConfigR::WindowControl == RANKING)
+			break;
+
 		if (ConfigR::DropListRegion != 0) {
 			int Page = ConfigR::DropListPage * 10;
 			int State = DropListButton + Page;
@@ -1470,7 +2060,7 @@ BOOL __stdcall HKD_ControlEventClick(int Handle, int Scene)//by seitbnao
 
 		NewWindowTX1->setConstString("Armas");
 		NewWindowTX2->setConstString("Sets");
-		NewWindowTX3->setConstString("Refináveis");
+		NewWindowTX3->setConstString("Refinï¿½veis");
 		NewWindowTX4->setConstString("Quests");
 		NewWindowTX5->setConstString("");
 		NewWindowTX6->setConstString("");
@@ -1578,10 +2168,12 @@ bool HookNaked::HKD_CallBack_Event_Esc()
 		PainelTrajes->IsVisible = false;
 		Return = true;
 	}
-	/*if (PainelRanking->IsVisible == true) {
+	if (PainelRanking && PainelRanking->IsVisible == true) {
 		PainelRanking->IsVisible = false;
+		if (ConfigR::WindowControl == COMMANDS && GamePainel)
+			GamePainel->IsVisible = true;
 		Return = true;
-	}*/
+	}
 
 	if (MailPainel->IsVisible == true) {
 		MailPainel->IsVisible = false;
@@ -1594,6 +2186,8 @@ bool HookNaked::HKD_CallBack_Event_Esc()
 
 	if (PainelPix->IsVisible == true) {
 		PainelPix->IsVisible = false;
+		if (GamePainel)
+			GamePainel->IsVisible = true;
 		Return = true;
 	}
 
@@ -1610,24 +2204,34 @@ bool HookNaked::HKD_CallBack_Event_Esc()
 	
 	if (painelteleport->IsVisible == true) {
 		painelteleport->IsVisible = false;
+		if (ConfigR::WindowControl == FILTRO && GamePainel)
+			GamePainel->IsVisible = true;
 		Return = true;
 	}
 
-	if (GamePainel->IsVisible == true) {
+	if (!Return && GamePainel->IsVisible == true) {
 		GamePainel->IsVisible = false;
 		Return = true;
 	}	
 
-	if (DropList->IsVisible == true) {
-		DropList->IsVisible = false;
-		auto DropListGrid = g_pInterface->Instance()->getGuiFromHandle<UISlot>(179600);
-		*(int*)((int)DropListGrid + 0x400) = 0x5;
-		DropListGrid->deleteItems();
-		GamePainel->IsVisible = true;
+	if (!Return && DropList->IsVisible == true) {
+		if (ConfigR::WindowControl != COMMANDS && ConfigR::DropListRegion != 0) {
+			int CityPage = ConfigR::DropListRegion > 10 ? 1 : 0;
+			ClearDropListGrid();
+			SetDropListCityPage(CityPage);
+			DropList->IsVisible = true;
+		}
+		else {
+			DropList->IsVisible = false;
+			if (ConfigR::WindowControl != COMMANDS)
+				ClearDropListGrid();
+			if (GamePainel)
+				GamePainel->IsVisible = true;
+		}
 		Return = true;
 	}
 
-	if (StorePainel->IsVisible == true) {
+	if (!Return && StorePainel->IsVisible == true) {
 		StorePainel->IsVisible = false;
 
 		for (int i = 0; i < 15; i++) {
@@ -1635,6 +2239,8 @@ bool HookNaked::HKD_CallBack_Event_Esc()
 			*(int*)((int)ShopGrid + 0x400) = 0x1;
 			ShopGrid->deleteItemGui(0, 0);
 		}
+		if (GamePainel)
+			GamePainel->IsVisible = true;
 		Return = true;
 
 		auto bufftempo = g_pInterface->getGuiFromHandle<UIControl>(5749);
@@ -1684,10 +2290,10 @@ __declspec(naked) void HookNaked::NKD_HandleScene()
 		TEST EAX, EAX
 		JNZ Jump
 
-		PUSH 0x004B3E75 // Fim da função, ignora completamente os handles
+		PUSH 0x004B3E75 // Fim da funï¿½ï¿½o, ignora completamente os handles
 		RETN;
 
-	Jump: // retornou true então executa normalmente as funções do exe
+	Jump: // retornou true entï¿½o executa normalmente as funï¿½ï¿½es do exe
 
 		CMP DWORD PTR SS : [EBP + 0x8] , 0x10006
 			PUSH 0x004B2435
@@ -1711,10 +2317,10 @@ __declspec(naked) void HookNaked::NKD_ControlEventClick()
 		JNZ Jump
 
 		MOV ECX, DWORD PTR SS : [EBP - 0x2460]
-		PUSH 0x0046B56E// Fim da função, ignora completamente os handles
+		PUSH 0x0046B56E// Fim da funï¿½ï¿½o, ignora completamente os handles
 		RETN
 
-		Jump :// retornou true então executa normalmente as funções do exe
+		Jump :// retornou true entï¿½o executa normalmente as funï¿½ï¿½es do exe
 		PUSH 0x0046B578
 			RETN
 	}

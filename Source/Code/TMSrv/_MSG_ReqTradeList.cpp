@@ -26,11 +26,13 @@ void Exec_MSG_ReqTradeList(int conn, char *pMsg)
 
 	if (Size > sizeof(MSG_STANDARDPARM)) //CONTROLE DE SIZE
 	{
-		SendClientMessage(conn, "Impossível executar ação44, tente mais tarde. ");
+		SendClientMessage(conn, "Impossivel executar acao44, tente mais tarde. ");
 		return;
 	}
 
 	int autoID = m->Parm;
+	int ownerID = GetAutoTradeOwner(autoID);
+	int shopID = GetAutoTradeDisplayMob(ownerID);
 
 	if (pMob[conn].MOB.CurrentScore.Hp == 0 || pUser[conn].Mode != USER_PLAY)
 	{
@@ -39,15 +41,12 @@ void Exec_MSG_ReqTradeList(int conn, char *pMsg)
 		return;
 	}
 
-	if (autoID <= 0 || autoID >= MAX_USER)
+	if (ownerID <= 0 || ownerID >= MAX_USER || shopID <= 0 || shopID >= MAX_MOB)
 		return;
 
-	if (pUser[autoID].TradeMode == 0)
-		return;
-
-	if (pMob[conn].TargetX >= pMob[autoID].TargetX - VIEWGRIDX && pMob[conn].TargetX <= pMob[autoID].TargetX + VIEWGRIDX
-		&& pMob[conn].TargetY >= pMob[autoID].TargetY - VIEWGRIDY && pMob[conn].TargetY <= pMob[autoID].TargetY + VIEWGRIDY)
-		SendAutoTrade(conn, autoID);
+	if (pMob[conn].TargetX >= pMob[shopID].TargetX - VIEWGRIDX && pMob[conn].TargetX <= pMob[shopID].TargetX + VIEWGRIDX
+		&& pMob[conn].TargetY >= pMob[shopID].TargetY - VIEWGRIDY && pMob[conn].TargetY <= pMob[shopID].TargetY + VIEWGRIDY)
+		SendAutoTrade(conn, shopID);
 
 	else
 		SystemLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP, "err,too far from autotrade - _MSG_ReqTradeList");

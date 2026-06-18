@@ -282,7 +282,7 @@ void Closeproc(LPCSTR wName)
 void disablemwyd_exe() // contar somente 2 WYD's.exe se não fechar
 {
 	
-	LPCSTR wexe = "TheNewWorld.exe";
+	LPCSTR wexe = "WYD.exe";
 	PROCESSENTRY32 entry;
 	entry.dwSize = sizeof(PROCESSENTRY32);
 	HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);

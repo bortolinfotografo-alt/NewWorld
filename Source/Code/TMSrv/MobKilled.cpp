@@ -24,6 +24,23 @@
 #include "Functions.h"
 #include "wMySQL.h"
 
+static void ClearWaterProgressScrolls(int conn, int firstId, int lastId)
+{
+	if (conn <= 0 || conn >= MAX_USER || pUser[conn].Mode != USER_PLAY)
+		return;
+
+	for (int i = 0; i < pMob[conn].MaxCarry && i < MAX_CARRY; i++)
+	{
+		int itemId = pMob[conn].MOB.Carry[i].sIndex;
+
+		if (itemId < firstId || itemId > lastId)
+			continue;
+
+		BASE_ClearItem(&pMob[conn].MOB.Carry[i]);
+		SendItem(conn, ITEM_PLACE_CARRY, i, &pMob[conn].MOB.Carry[i]);
+	}
+}
+
 void MobKilled(int target, int conn, int PosX, int PosY)
 {
 	if (conn <= 0 || conn >= MAX_MOB || target <= 0 || target >= MAX_MOB || pMob[target].Mode == USER_EMPTY)
@@ -140,7 +157,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 						STRUCT_ITEM presente = { 476, 0, 0, 0 };
 						PutItem(target, &presente);
 						//pUser[conn].Honra += 5;
-						SendClientMessage(target, "Recebeu um prêmio de consolo da Arena Real.");
+						SendClientMessage(target, "Recebeu um prmio de consolo da Arena Real.");
 						DoRecall(target);
 						pMob[target].MOB.CurrentScore.Hp = pMob[target].MOB.CurrentScore.MaxHp;
 						pMob[target].MOB.CurrentScore.Mp = pMob[target].MOB.CurrentScore.MaxMp;
@@ -257,7 +274,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 
 #pragma endregion
 
-#pragma region Invocações
+#pragma region Invocaes
 	MSG_CNFMobKill sm;
 	memset(&sm, 0, sizeof(MSG_CNFMobKill));
 
@@ -299,7 +316,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 		{
 			if (conn < MAX_USER && pMob[target].MOB.Clan != 4)
 			{
-#pragma region Distribuição da EXP
+#pragma region Distribuio da EXP
 				int MobExp = GetExpApply(pMob[conn].extra, (int)pMob[target].MOB.Exp, pMob[conn].MOB.CurrentScore.Level, pMob[target].MOB.CurrentScore.Level);
 				int FinalExp = 0;
 
@@ -363,8 +380,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 									exp *= 2;
 
 
-								if (KefraLive == 0)
-									exp /= 2;
+								/* penalidade XP/2 do Kefra REMOVIDA (a pedido 2026-06-18) */
 
 								if (NewbieEventServer)
 									exp += (exp * 15) / 100;
@@ -405,7 +421,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 									exp -= (exp * 10) / 100;
 
 
-#pragma region Log de Experiência diário
+#pragma region Log de Experincia dirio
 								if (when.tm_yday != pMob[party].extra.DayLog.YearDay)
 									pMob[party].extra.DayLog.Exp = 0;
 
@@ -471,8 +487,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 								if (DOUBLEMODE)
 									exp *= 2;
 
-								if (KefraLive == 0)
-									exp /= 2;
+								/* penalidade XP/2 do Kefra REMOVIDA (a pedido 2026-06-18) */
 
 								if (NewbieEventServer)
 									exp += (exp * 15) / 100;
@@ -502,7 +517,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 
 
 
-#pragma region Log de Experiência diário
+#pragma region Log de Experincia dirio
 								if (when.tm_yday != pMob[party].extra.DayLog.YearDay)
 									pMob[party].extra.DayLog.Exp = 0;
 
@@ -565,8 +580,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 								if (DOUBLEMODE)
 									exp *= 2;
 
-								if (KefraLive == 0)
-									exp /= 2;
+								/* penalidade XP/2 do Kefra REMOVIDA (a pedido 2026-06-18) */
 
 								if (NewbieEventServer)
 									exp += (exp * 15) / 100;
@@ -594,7 +608,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 								if (ARNOLD == 0)
 									exp -= (exp * 10) / 100;
 
-#pragma region Log de Experiência diário
+#pragma region Log de Experincia dirio
 								if (when.tm_yday != pMob[party].extra.DayLog.YearDay)
 									pMob[party].extra.DayLog.Exp = 0;
 
@@ -664,7 +678,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 								else
 									exp -= (exp * 15) / 100;*/
 
-#pragma region Log de Experiência diário
+#pragma region Log de Experincia dirio
 								if (when.tm_yday != pMob[party].extra.DayLog.YearDay)
 									pMob[party].extra.DayLog.Exp = 0;
 
@@ -723,6 +737,68 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 						int AlvoY = PosY;
 						if (!PosY)
 							AlvoY = pMob[target].TargetY;
+
+						// === Drop customizado: luvas de imunidade do Tauron_Agmo ===
+						// Dropa 1 das 4 luvas (Le) grau D (aleatorio, qualquer classe).
+						// Com chance, a luva vem com adicional de imunidade em 5 tiers:
+						// tier1 10/6 ... tier5 30/18 (raro, mas existe). Tudo afinavel.
+						if (strncmp(pMob[target].MOB.MobName, "Tauron_Agmo", NAME_LENGTH) == 0)
+						{
+							// --- Luvas (grau D, qualquer classe) ---
+							// 20% por kill dropa uma luva; 70% delas vem com imunidade,
+							// concentrada nos tiers BAIXOS. Tier4/5 (imunidade alta) raro.
+							if (rand() % 1000 < 200) // 20%: dropa uma luva por kill
+							{
+								STRUCT_ITEM glove;
+								memset(&glove, 0, sizeof(STRUCT_ITEM));
+
+								int gloveIdx[4] = { 2189, 2209, 2229, 2249 }; // TK, FM, BM, HT
+								glove.sIndex = gloveIdx[rand() % 4];
+
+								glove.stEffect[0].cEffect = EF_GRADE3; // pede grau D
+								SetItemBonus(&glove, pMob[target].MOB.CurrentScore.Level, 0, 0);
+
+								if (rand() % 100 < 70) // 70% das luvas vem com imunidade
+								{
+									int defTier[5] = { 10, 15, 20, 25, 30 };
+									int imuTier[5] = { 6, 9, 12, 15, 18 };
+									int rt = rand() % 1000;
+									int t;
+									if (rt < 600) t = 0;       // tier 1  60% (imunidade baixa, comum)
+									else if (rt < 850) t = 1;  // tier 2  25%
+									else if (rt < 950) t = 2;  // tier 3  10%
+									else if (rt < 990) t = 3;  // tier 4   4%
+									else t = 4;                // tier 5   1% (30/18, imunidade alta, raro)
+
+									glove.stEffect[1].cEffect = EF_ACADD2;    // Defesa
+									glove.stEffect[1].cValue = defTier[t];
+									glove.stEffect[2].cEffect = EF_RESISTALL; // Aumento de Imunidades
+									glove.stEffect[2].cValue = imuTier[t];
+								}
+
+								if (pHeightGrid[AlvoY][AlvoX] > -40 && pHeightGrid[AlvoY][AlvoX] < 36)
+									CreateItem(AlvoX, AlvoY, &glove, rand() % 4, 1);
+							}
+
+							// --- Pedras (equilibradas) ---
+							// Substituem o drop do Carry (era 1/500 Tectita, 1/2500 Adamantita,
+							// 1/20000 Sabio -> por isso so caia tectita). Agora as 3 tem chances
+							// parecidas e afinaveis. As pedras do Carry sao suprimidas no Drop comum.
+							{
+								int stone = 0;
+								if (rand() % 600 == 0)        stone = 577;   // Pedra de Tectita    ~1/600
+								else if (rand() % 600 == 0)   stone = 578;   // Pedra de Adamantita ~1/600
+								else if (rand() % 1200 == 0)  stone = 1774;  // Pedra do Sabio      ~1/1200 (mais rara)
+
+								if (stone && pHeightGrid[AlvoY][AlvoX] > -40 && pHeightGrid[AlvoY][AlvoX] < 36)
+								{
+									STRUCT_ITEM st;
+									memset(&st, 0, sizeof(STRUCT_ITEM));
+									st.sIndex = stone;
+									CreateItem(AlvoX, AlvoY, &st, rand() % 4, 1);
+								}
+							}
+						}
 
 						if (pMob[target].GenerateIndex == CARONTE)
 						{
@@ -798,7 +874,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 							item.stEffect[2].cValue = 0;
 
 							if (PutItem(conn, &item)){
-								SendClientMessage(conn, "Você recebeu [01][Carta Duelo N]");
+								SendClientMessage(conn, "Voc recebeu [01][Carta Duelo N]");
 							}
 							g_BSombraNegra = FALSE;
 						}
@@ -818,7 +894,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 							item.stEffect[2].cValue = 0;
 
 							if (PutItem(conn, &item))
-								SendClientMessage(conn, "Você recebeu [02][Carta Duelo N]");
+								SendClientMessage(conn, "Voc recebeu [02][Carta Duelo N]");
 							g_BVerid = FALSE;
 						}
 #pragma endregion
@@ -914,7 +990,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 						//
 						//							DoRecall(conn);
 						//
-						//							SendClientMessage(conn, "Parabéns você concluiu a Quest.");
+						//							SendClientMessage(conn, "Parabns voc concluiu a Quest.");
 						//							for (int i = 0; i < MAX_PARTY; i++)
 						//							{
 						//								int partyconn = pMob[conn].PartyList[i];
@@ -923,7 +999,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 						//								{
 						//									DoRecall(partyconn);
 						//									EspelhoLive = 0;
-						//									SendMsgExp(partyconn, "Parabéns vocês concluiram a Quest.", TNColor::Default, false);
+						//									SendMsgExp(partyconn, "Parabns vocs concluiram a Quest.", TNColor::Default, false);
 						//								}
 						//							}
 						//						}
@@ -1069,7 +1145,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 						{
 							int GenerateID = pMob[target].GenerateIndex;
 
-#pragma region Portões de Noatum
+#pragma region Portes de Noatum
 							if (pMob[target].MOB.Equip[0].sIndex == 220 && CastleState)
 							{
 								if (pMob[target].TargetX < 0 || pMob[target].TargetX >= MAX_GRIDX || pMob[target].TargetY < 0 || pMob[target].TargetY >= MAX_GRIDY)
@@ -1138,13 +1214,16 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 										Perga.sIndex = 778 + Sala;
 
 										if (partyleader > 0 && partyleader < MAX_USER)
+										{
+											ClearWaterProgressScrolls(partyleader, 778, 785);
 											PutItem(partyleader, &Perga);
+										}
 
 										SendClientSignalParm(partyleader, ESCENE_FIELD, _MSG_StartTime, WaterClear1[1][Sala] * 2);
 
 										for (int i = 0; i < MAX_PARTY; i++)
 										{
-											int partymember = pMob[partyleader].PartyList[i]; // tu não pagou mas vou corrigir, isso acontece na agua tbm
+											int partymember = pMob[partyleader].PartyList[i]; // tu no pagou mas vou corrigir, isso acontece na agua tbm
 
 											if (partymember >= MAX_USER) continue;
 
@@ -1217,7 +1296,10 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 										Perga.sIndex = 3174 + Sala;
 
 										if (partyleader > 0 && partyleader < MAX_USER)
+										{
+											ClearWaterProgressScrolls(partyleader, 3174, 3181);
 											PutItem(partyleader, &Perga);
+										}
 
 										SendClientSignalParm(partyleader, ESCENE_FIELD, _MSG_StartTime, WaterClear1[0][Sala] * 2);
 
@@ -1296,7 +1378,10 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 										Perga.sIndex = 3183 + Sala;
 
 										if (partyleader > 0 && partyleader < MAX_USER)
+										{
+											ClearWaterProgressScrolls(partyleader, 3183, 3190);
 											PutItem(partyleader, &Perga);
+										}
 
 										SendClientSignalParm(partyleader, ESCENE_FIELD, _MSG_StartTime, WaterClear1[2][Sala] * 2);
 
@@ -1529,10 +1614,10 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 										GenerateMob(GenerateIndex, 0, 0);//Pesa A
 								}
 #pragma endregion
-#pragma region Portão Infernal Parte 1
+#pragma region Porto Infernal Parte 1
 								else if (GenerateIndex >= PI_INITIAL1 && GenerateIndex <= PI_END1)
 								{
-									// Portão Infernal Parte 1
+									// Porto Infernal Parte 1
 									GenerateMob(GenerateIndex, 0, 0);
 								}
 #pragma endregion
@@ -1832,7 +1917,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 
 										Runa.sIndex = PistaRune[0][rand() % 5];
 
-										//correção
+										//correo
 										if (checkCord(partyleader, 3330, 1600, 3450, 1660) == TRUE)
 										{
 
@@ -1848,7 +1933,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 
 											if (pUser[partymember].Mode == USER_PLAY)
 											{
-												//correção
+												//correo
 												if (checkCord(partymember, 3330, 1600, 3450, 1660) == FALSE)
 													continue;
 
@@ -1940,7 +2025,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 
 									Runa.sIndex = PistaRune[2][rand() % 6];
 
-									//correção
+									//correo
 
 									if (checkCord(partyleader, 3340, 1425, 3449, 1463) == TRUE)
 									{
@@ -1965,7 +2050,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 
 										if (pUser[partymember].Mode == USER_PLAY)
 										{
-											//correção
+											//correo
 											if (checkCord(partymember, 3340, 1425, 3449, 1463) == FALSE)
 												continue;
 
@@ -2084,7 +2169,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 
 									Runa.sIndex = PistaRune[4][rand() % 4];
 
-									//correção
+									//correo
 
 									if (checkCord(partyleader, 3333, 1320, 3365, 1349) == TRUE)
 									{
@@ -2112,7 +2197,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 
 										if (pUser[partymember].Mode == USER_PLAY)
 										{
-											//correção
+											//correo
 											if (checkCord(partymember, 3333, 1320, 3365, 1349) == TRUE)
 											{
 												Runa.sIndex = PistaRune[4][rand() % 4];
@@ -2140,7 +2225,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 
 									Runa.sIndex = PistaRune[5][rand() % 7];
 
-									//correção
+									//correo
 
 									if (checkCord(partyleader, 3333, 1157, 3448, 1271) == TRUE)
 									{
@@ -2168,7 +2253,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 
 										if (pUser[partymember].Mode == USER_PLAY)
 										{
-											//correção
+											//correo
 											if (checkCord(partymember, 3333, 1157, 3448, 1271) == FALSE)
 												continue;
 											Runa.sIndex = PistaRune[5][rand() % 7];
@@ -2207,7 +2292,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 
 									Runa.sIndex = PistaRune[6][rand() % 9];
 
-									//correção
+									//correo
 									if (checkCord(partyleader, 3332, 1471, 3449, 1529) == TRUE)
 									{
 
@@ -2224,7 +2309,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 
 										if (pUser[partymember].Mode == USER_PLAY)
 										{
-											//correção
+											//correo
 											if (checkCord(partymember, 3332, 1471, 3449, 1529) == FALSE)
 												continue;
 
@@ -2248,7 +2333,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 							else if (pMob[target].MOB.BaseScore.Level < 30)
 								UNKGOLD = 6;
 							else if (pMob[target].MOB.BaseScore.Level < 50)
-								UNKGOLD = 9; // aparentementer corrigido man, ta igual ao meu e eu não tenho mais esse b.o se ainda causar, me avisa que a gente vê :) ok
+								UNKGOLD = 9; // aparentementer corrigido man, ta igual ao meu e eu no tenho mais esse b.o se ainda causar, me avisa que a gente v :) ok
 
 							UNKGOLD = rand() % (UNKGOLD + 1);
 
@@ -2288,7 +2373,7 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 									item.stEffect[2].cEffect = 59;
 									item.stEffect[2].cValue = rand();
 
-									//snprintf(temp, sizeof(temp), " [%s] Dropou [%s] já foram dropados [%d].", pMob[conn].MOB.MobName, g_pItemList[evItem].Name, evCurrentIndex);
+									//snprintf(temp, sizeof(temp), " [%s] Dropou [%s] j foram dropados [%d].", pMob[conn].MOB.MobName, g_pItemList[evItem].Name, evCurrentIndex);
 								}
 								else {
 									//snprintf(temp, sizeof(temp), "[%s] Dropou [%s]", pMob[conn].MOB.MobName, g_pItemList[evItem].Name);
@@ -2325,6 +2410,15 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 							{
 								if (pMob[target].MOB.Carry[i].sIndex == 0)
 									continue;
+
+								// Tauron_Agmo: as pedras agora caem pelo bloco custom (equilibrado).
+								// Sem isso, a Tectita inundava por estar num slot de Carry rapido.
+								if (strncmp(pMob[target].MOB.MobName, "Tauron_Agmo", NAME_LENGTH) == 0)
+								{
+									int csidx = pMob[target].MOB.Carry[i].sIndex;
+									if (csidx == 577 || csidx == 578 || csidx == 1774)
+										continue;
+								}
 
 								int droprate = g_pDropRate[i];
 								int dropbonus = g_pDropBonus[i] + pMob[conn].DropBonus;
@@ -2401,6 +2495,17 @@ void MobKilled(int target, int conn, int PosX, int PosY)
 
 								if (i == 11)
 									droprate = 1;
+
+								// Pedras de evolucao (1744-1759, inclui boss/Lugefer): ~50% menos drop (x2.0)
+								switch (pMob[target].MOB.Carry[i].sIndex)
+								{
+								case 1744: case 1745: case 1746: case 1747:
+								case 1748: case 1749: case 1750: case 1751:
+								case 1752: case 1753: case 1754: case 1755:
+								case 1756: case 1757: case 1758: case 1759:
+									droprate = droprate * 200 / 100;
+									break;
+								}
 
 								if (droprate >= 32000)
 									droprate = 32000;

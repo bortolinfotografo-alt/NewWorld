@@ -32,6 +32,7 @@
 #include "CCubo.h"
 #include "wMySQL.h"
 #include "Functions.h"
+#include "BalanceTestSetup.h"
 
 
 void SaveAll()
@@ -48,16 +49,16 @@ void SaveAll()
 }
 void ProcessImple(int conn, int level, char* str)
 {
-	char cmd[128];
-	char sval1[128];
-	char sval2[128];
-	char sval3[128];
-	char sval4[128];
-	char sval5[128];
-	char sval6[128];
-	char sval7[128];
-	char sval8[128];
-	char sval9[128];
+	char cmd[128] = {};
+	char sval1[128] = {};
+	char sval2[128] = {};
+	char sval3[128] = {};
+	char sval4[128] = {};
+	char sval5[128] = {};
+	char sval6[128] = {};
+	char sval7[128] = {};
+	char sval8[128] = {};
+	char sval9[128] = {};
 	unsigned int  ival1 = 0;
 	unsigned int  ival2 = 0;
 	long long	  dval2 = 0;
@@ -92,6 +93,44 @@ void ProcessImple(int conn, int level, char* str)
 		if (conn <= 0 && conn >= MAX_USER)
 			return;
 
+		// Keep the short pet-matrix aliases isolated from the main balance commands.
+		if (!strcmp(cmd, "bpnext"))
+		{
+			char balanceMessage[160];
+			ApplyNextBalancePetTestPair(balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+			return;
+		}
+		if (!strcmp(cmd, "bp"))
+		{
+			char balanceMessage[192];
+			RunBalancePetCurrentRound(ival1, balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+			return;
+		}
+		if (!strcmp(cmd, "bpsweep"))
+		{
+			char balanceMessage[256];
+			int sweepCount = ival1 > 0 ? ival1 : 10;
+			RunBalancePetSweep(sweepCount, balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+			return;
+		}
+		if (!strcmp(cmd, "bpstatus"))
+		{
+			char balanceMessage[192];
+			GetBalancePetProgressStatus(balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+			return;
+		}
+		if (!strcmp(cmd, "bpreset"))
+		{
+			char balanceMessage[160];
+			ResetBalancePetProgress(balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+			return;
+		}
+
 		
 		if (!strcmp(cmd, "set"))
 		{
@@ -107,7 +146,7 @@ void ProcessImple(int conn, int level, char* str)
 				if (pMob[conn].MOB.Equip[7].sIndex != 0) { pMob[conn].MOB.Equip[7].stEffect[0].cEffect = EF_SANC; pMob[conn].MOB.Equip[7].stEffect[0].cValue = ival2; }
 				SendClientMessage(conn, "set sanc");
 			}
-			//Comandos de Edição de personagem
+			//Comandos de Ediaao de personagem
 			else if (!strcmp(sval1, "level"))
 			{
 				if (ival2 > 2010)
@@ -158,7 +197,7 @@ void ProcessImple(int conn, int level, char* str)
 			else if (!strcmp(sval1, "str"))
 			{
 				pMob[conn].MOB.BaseScore.Str = ival2;
-				SendClientMessage(conn, "sua força foi alterada para o solicitado");
+				SendClientMessage(conn, "sua foraa foi alterada para o solicitado");
 			}
 			else if (!strcmp(sval1, "int"))
 			{
@@ -173,7 +212,7 @@ void ProcessImple(int conn, int level, char* str)
 			else if (!strcmp(sval1, "con"))
 			{
 				pMob[conn].MOB.BaseScore.Con = ival2;
-				SendClientMessage(conn, "sua constituição foi alterada para o solicitado");
+				SendClientMessage(conn, "sua constituiaao foi alterada para o solicitado");
 			}
 			else if (!strcmp(sval1, "coin"))
 			{
@@ -304,6 +343,12 @@ void ProcessImple(int conn, int level, char* str)
 				pMob[conn].extra.Fame = ival2;
 				SendClientMessage(conn, "fama adicionada");
 			}
+			else if (!strcmp(sval1, "destravecel"))
+			{
+				pMob[conn].extra.QuestInfo.Celestial.Lv40 = 1;
+				pMob[conn].extra.QuestInfo.Celestial.Lv90 = 1;
+				SendClientMessage(conn, "Destrave celestial classico completo (Lv40/90)");
+			}
 
 			//Comandos de dar clear em personagem
 			else if (!strcmp(sval1, "secclearskill"))
@@ -338,7 +383,7 @@ void ProcessImple(int conn, int level, char* str)
 			{
 				if (RvRBluePoint == RvRRedPoint)
 
-					SendNotice("Guerra de Reinos terminou em empate [Sem Bônus RVR]. ");
+					SendNotice("Guerra de Reinos terminou em empate [Sem Banus RVR]. ");
 				RvRBonus = 0;
 
 			}
@@ -355,9 +400,9 @@ void ProcessImple(int conn, int level, char* str)
 					SendClientMessage(conn, "1 - Aberto / 2 - Fechado / 3 - Travado");
 
 				if (ival2 == 1)
-					SendClientMessage(conn, "Portão Aberto!");
+					SendClientMessage(conn, "Portao Aberto!");
 				else if (ival2 == 2)
-					SendClientMessage(conn, "Portão Fechado!");
+					SendClientMessage(conn, "Portao Fechado!");
 			}
 			else if (!strcmp(sval1, "bigcubo"))
 			{
@@ -555,7 +600,7 @@ void ProcessImple(int conn, int level, char* str)
 			}
 			else if (!strcmp(sval1, "learned"))
 			{
-				int skillpos = ival2 % 32;
+				int skillpos = ival2 % 24;
 				int learn = 1 << skillpos;
 
 				pMob[conn].MOB.LearnedSkill |= learn;
@@ -661,13 +706,88 @@ void ProcessImple(int conn, int level, char* str)
 		}
 
 		
+		else if (!strcmp(cmd, "balsetup"))
+		{
+			char balanceMessage[128];
+			ApplyBalanceTestPreset(conn, sval1, sval2, balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+		}
+		else if (!strcmp(cmd, "balrun"))
+		{
+			char balanceMessage[128];
+			ApplyBalanceTestPair(sval1, balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+		}
+		else if (!strcmp(cmd, "balnext"))
+		{
+			char balanceMessage[128];
+			ApplyNextBalanceTestPair(balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+		}
+		else if (!strcmp(cmd, "balhit"))
+		{
+			char balanceMessage[128];
+			RunBalanceTestCurrentHits(balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+		}
+		else if (!strcmp(cmd, "balsweep"))
+		{
+			char balanceMessage[256];
+			int sweepCount = ival1 > 0 ? ival1 : 10;
+			RunBalanceTestSweep(sweepCount, balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+		}
+		else if (!strcmp(cmd, "balstatus"))
+		{
+			char balanceMessage[192];
+			GetBalanceTestProgressStatus(balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+		}
+		else if (!strcmp(cmd, "balreset"))
+		{
+			char balanceMessage[128];
+			ResetBalanceTestProgress(balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+		}
+		else if (!strcmp(cmd, "balpetnext") || !strcmp(cmd, "bpnext"))
+		{
+			char balanceMessage[160];
+			ApplyNextBalancePetTestPair(balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+		}
+		else if (!strcmp(cmd, "balpet") || !strcmp(cmd, "bp"))
+		{
+			char balanceMessage[192];
+			RunBalancePetCurrentRound(ival1, balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+		}
+		else if (!strcmp(cmd, "balpetsweep") || !strcmp(cmd, "bpsweep"))
+		{
+			char balanceMessage[256];
+			int sweepCount = ival1 > 0 ? ival1 : 10;
+			RunBalancePetSweep(sweepCount, balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+		}
+		else if (!strcmp(cmd, "balpetstatus") || !strcmp(cmd, "bpstatus"))
+		{
+			char balanceMessage[192];
+			GetBalancePetProgressStatus(balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+		}
+		else if (!strcmp(cmd, "balpetreset") || !strcmp(cmd, "bpreset"))
+		{
+			char balanceMessage[160];
+			ResetBalancePetProgress(balanceMessage, sizeof(balanceMessage));
+			SendClientMessage(conn, balanceMessage);
+		}
+
 		else if (!strcmp(cmd, "derrubar"))
 		{
 			int player = GetUserByName(sval1);
 
 			if (pUser[player].Mode != USER_PLAY)
 			{
-				SendClientMessage(conn, "Usuário não conectado.");
+				SendClientMessage(conn, "Usuario nao conectado.");
 				return;
 			}
 
@@ -681,7 +801,7 @@ void ProcessImple(int conn, int level, char* str)
 
 			if (pUser[player].Mode != USER_PLAY)
 			{
-				SendClientMessage(conn, "Usuário não conectado.");
+				SendClientMessage(conn, "Usuario nao conectado.");
 				return;
 			}
 
@@ -695,7 +815,7 @@ void ProcessImple(int conn, int level, char* str)
 
 			if (pUser[player].Mode != USER_PLAY)
 			{
-				SendClientMessage(conn, "Usuário não conectado.");
+				SendClientMessage(conn, "Usuario nao conectado.");
 				return;
 			}
 
@@ -1322,7 +1442,7 @@ void ProcessImple(int conn, int level, char* str)
 				SendClientMessage(conn, "Virou Celestial HT");
 			}
 			else
-				SendClientMessage(conn, "Você precisa digitar um valor de 0 a 3");
+				SendClientMessage(conn, "Voca precisa digitar um valor de 0 a 3");
 		}
 		else if (!strcmp(cmd, "log"))
 		{
@@ -1698,7 +1818,10 @@ void ProcessImple(int conn, int level, char* str)
 			else if (!strcmp(sval1, "double"))
 			{
 				DOUBLEMODE = ival2;
-				SendClientMessage(conn, "SET DOUBLEMODE");
+				if (ival2)
+					SendNotice("> > > Evento DOUBLE XP ATIVADO! XP em dobro, aproveitem! < < <");
+				else
+					SendNotice("> > > Evento DOUBLE XP encerrado. < < <");
 				DrawConfig(TRUE);
 			}
 			else if (!strcmp(sval1, "deadpoint"))
@@ -1804,7 +1927,7 @@ void ProcessImple(int conn, int level, char* str)
 		{
 			unsigned char attributemap = GetAttribute(pMob[conn].TargetX, pMob[conn].TargetY);
 			
-			snprintf(temp, sizeof(temp), "Atributo do mapa é %d", attributemap);
+			snprintf(temp, sizeof(temp), "Atributo do mapa a %d", attributemap);
 			SendClientMessage(conn, temp);
 		}
 		else if (!strcmp(cmd, "billconnect"))
@@ -2232,7 +2355,7 @@ void ProcessImple(int conn, int level, char* str)
 			char tmg[256];
 
 			if (cCubo)
-				snprintf(tmg, sizeof(tmg), "Você está no local certo!");
+				snprintf(tmg, sizeof(tmg), "Voca esta no local certo!");
 			else
 				snprintf(tmg, sizeof(tmg), "Lugar errado!");
 
@@ -2398,7 +2521,7 @@ void ProcessImple(int conn, int level, char* str)
 		{
 			SendNotice("Guerra de Torres finalizada.");
 
-			ClearArea(2445, 1850, 2546, 1920); // Precaução.
+			ClearArea(2445, 1850, 2546, 1920); // Precauaao.
 
 			for (int i = MAX_USER; i < MAX_MOB; i++)
 			{
@@ -2655,7 +2778,7 @@ void ProcessImple(int conn, int level, char* str)
 
 			if (pUser[player].Mode != 22)
 			{
-				SendClientMessage(conn, "Este jogador não está conectado.");
+				SendClientMessage(conn, "Este jogador nao esta conectado.");
 				return;
 			}
 			else
@@ -2668,7 +2791,7 @@ void ProcessImple(int conn, int level, char* str)
 
 			if (!ival1)
 			{
-				SendClientMessage(conn, "Digite um nome para Ativação.");
+				SendClientMessage(conn, "Digite um nome para Ativaaao.");
 				return;
 			}
 			else if (!ival2)
@@ -2686,13 +2809,13 @@ void ProcessImple(int conn, int level, char* str)
 
 					if (FileExist(Diretorio))
 					{
-						SendClientMessage(conn, "Pincode já existente.");
+						SendClientMessage(conn, "Pincode ja existente.");
 						return;
 					}
 					fopen_s(&fs, Diretorio, "w+");
 					if (!fs)
 					{
-						SendClientMessage(conn, "Um erro ocorreu durante a criação do serial.");
+						SendClientMessage(conn, "Um erro ocorreu durante a criaaao do serial.");
 						return;
 					}
 

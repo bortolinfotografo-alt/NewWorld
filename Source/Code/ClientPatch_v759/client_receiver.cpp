@@ -93,6 +93,13 @@ char* ClientReceiver(char* pBuffer, int a_iSize)
 		return pBuffer;
 	}
 
+	if (m->Type == _MSG_AutoTradePreview)
+	{
+		auto Preview = reinterpret_cast<MSG_STANDARDPARM*>(pBuffer);
+		AutoTradePreviewSet(Preview->Parm > 0, Preview->Parm);
+		return pBuffer;
+	}
+
 	/* Ativar ou desativar efeitos dos buffs antigos */
 	/*if (m->Type == 0x5001)
 	{

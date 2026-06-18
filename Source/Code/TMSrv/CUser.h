@@ -95,6 +95,9 @@ public:
 	//////////////////////////////////////////
 
 	MSG_SendAutoTrade AutoTrade;
+	int AutoTradeStoreMob;
+	int AutoTradeStoreX;
+	int AutoTradeStoreY;
 
 	/////////////////////////////////////////
 
@@ -195,7 +198,7 @@ public:
 
 		bool autoStore; 
 
-		bool GrupoAceitarSolicitação;
+		bool GrupoAceitarSolicitacao;
 
 		int CheckPista;
 		int CheckPesa;

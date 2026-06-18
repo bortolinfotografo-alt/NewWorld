@@ -23,6 +23,10 @@ STRUCT_ITEM* ControleDropItem(int conn, int target, int bonus, int PosX, int Pos
 {
 	STRUCT_ITEM* ItemDrop = Item;
 
+	// Helriohdon (346): montaria quebrada - nunca dropa (removido de TODOS os drops)
+	if (ItemDrop != NULL && ItemDrop->sIndex == 346)
+		return ItemDrop;
+
 	if (ItemDrop->sIndex != 0 && CCastleZakum::KeyDrop(target, conn, PosX, PosY, ItemDrop) == TRUE)
 	{
 		SetItemBonus(ItemDrop, pMob[target].MOB.CurrentScore.Level, 0, bonus);
@@ -46,12 +50,14 @@ STRUCT_ITEM* ControleDropItem(int conn, int target, int bonus, int PosX, int Pos
 			}
 		}
 
-		/*if (ItemDrop->sIndex == 1740 || ItemDrop->sIndex == 1741)
-			SendNotice(strFmt("O jogador [%s] dropou uma [%s]", pMob[conn].MOB.MobName, g_pItemList[ItemDrop->sIndex].Name));*/
-
 		//agrupador automatico teste
 		if (AgroupList(conn, ItemDrop->sIndex) == true) {
 			SendItemagrupar(conn, ItemDrop->sIndex);
+			if (ItemDrop->sIndex == 1740 || ItemDrop->sIndex == 1741)
+			{
+				const char* soulName = ItemDrop->sIndex == 1740 ? "Alma do Unicornio" : "Alma da Fenix";
+				SendNotice(strFmt("[DROP RARO] %s dropou %s!", pMob[conn].MOB.MobName, soulName));
+			}
 
 			if (LogList(ItemDrop->sIndex) == true) {
 				snprintf(temp, sizeof(temp), "MobName:%s dropou o item: %s:%d %d.%d.%d.%d.%d.%d do mob:%s", pMob[conn].MOB.MobName, g_pItemList[ItemDrop->sIndex].Name, ItemDrop->sIndex, ItemDrop->stEffect[0].cEffect, ItemDrop->stEffect[0].cValue, ItemDrop->stEffect[1].cEffect, ItemDrop->stEffect[1].cValue, ItemDrop->stEffect[2].cEffect, ItemDrop->stEffect[2].cValue, pMob[target].MOB.MobName);
@@ -63,6 +69,11 @@ STRUCT_ITEM* ControleDropItem(int conn, int target, int bonus, int PosX, int Pos
 
 		if (PutItem(conn, ItemDrop))
 		{
+			if (ItemDrop->sIndex == 1740 || ItemDrop->sIndex == 1741)
+			{
+				const char* soulName = ItemDrop->sIndex == 1740 ? "Alma do Unicornio" : "Alma da Fenix";
+				SendNotice(strFmt("[DROP RARO] %s dropou %s!", pMob[conn].MOB.MobName, soulName));
+			}
 			if (LogList(ItemDrop->sIndex) == true) {
 				snprintf(temp, sizeof(temp), "MobName:%s dropou o item: %s:%d %d.%d.%d.%d.%d.%d do mob:%s", pMob[conn].MOB.MobName, g_pItemList[ItemDrop->sIndex].Name, ItemDrop->sIndex, ItemDrop->stEffect[0].cEffect, ItemDrop->stEffect[0].cValue, ItemDrop->stEffect[1].cEffect, ItemDrop->stEffect[1].cValue, ItemDrop->stEffect[2].cEffect, ItemDrop->stEffect[2].cValue, pMob[target].MOB.MobName);
 				MobDropLog(pUser[conn].AccountName, pUser[conn].MacAddress, pUser[conn].IP, temp);

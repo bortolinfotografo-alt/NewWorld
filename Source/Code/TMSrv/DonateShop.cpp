@@ -268,127 +268,85 @@ void TradeDonate(int conn, char* pMsg)
 	return;
 }
 
-void UpdateShopDonate1() {
+static bool LoadDonateShopTable(int shopIndex, const char* tableName)
+{
 	auto& pc = cSQL::instance();
+	int items[45][3] = {};
+	int count = 0;
 
-	int Index[45] = {};
-	int Value[45] = {};
-	int Estoque[45] = {};
-	int i = 0;
+	snprintf(hQuery, sizeof(hQuery),
+		"SELECT `index`, `value`, `estoque` FROM `%s` ORDER BY `id` LIMIT 45",
+		tableName);
 
-	sprintf(hQuery, "SELECT * FROM `donatestore1` LIMIT 45");
-	MYSQL_ROW row;
 	MYSQL* wSQL = pc.wStart();
 	MYSQL_RES* result = pc.wRes(wSQL, hQuery);
-
 	if (result == NULL)
-		return;
+		return false;
 
-	while ((row = mysql_fetch_row(result)) != NULL)
-	{		
-		Index[i] = atoi(row[2]);
-		Value[i] = atoi(row[3]);
-		Estoque[i] = atoi(row[4]);
-		i++;
-	}
-
-	for (int y = 0; y < 15; y++) {		
-		cStoreItens[0][0][y][0] = Index[y];
-		cStoreItens[0][0][y][1] = Value[y];
-		cStoreItens[0][0][y][2] = Estoque[y];
-	}
-	for (int z = 15; z < 30; z++) {
-		cStoreItens[0][1][z - 15][0] = Index[z];
-		cStoreItens[0][1][z - 15][1] = Value[z];
-		cStoreItens[0][1][z - 15][2] = Estoque[z];
-	}
-	for (int x = 30; x < 45; x++) {
-		cStoreItens[0][2][x - 30][0] = Index[x];
-		cStoreItens[0][2][x - 30][1] = Value[x];
-		cStoreItens[0][2][x - 30][2] = Estoque[x];
-	}
-}
-void UpdateShopDonate2() {
-	auto& pc = cSQL::instance();
-
-	int Index[45] = {};
-	int Value[45] = {};
-	int Estoque[45] = {};
-	int i = 0;
-
-	sprintf(hQuery, "SELECT * FROM `donatestore2` LIMIT 45");
 	MYSQL_ROW row;
-	MYSQL* wSQL = pc.wStart();
-	MYSQL_RES* result = pc.wRes(wSQL, hQuery);
-
-	if (result == NULL)
-		return;
-
-	while ((row = mysql_fetch_row(result)) != NULL)
+	while (count < 45 && (row = mysql_fetch_row(result)) != NULL)
 	{
-		Index[i] = atoi(row[2]);
-		Value[i] = atoi(row[3]);
-		Estoque[i] = atoi(row[4]);
-		i++;
+		items[count][0] = row[0] ? atoi(row[0]) : 0;
+		items[count][1] = row[1] ? atoi(row[1]) : 0;
+		items[count][2] = row[2] ? atoi(row[2]) : 0;
+		count++;
 	}
 
-	for (int y = 0; y < 15; y++) {
-		cStoreItens[1][0][y][0] = Index[y];
-		cStoreItens[1][0][y][1] = Value[y];
-		cStoreItens[1][0][y][2] = Estoque[y];
-	}
-	for (int z = 15; z < 30; z++) {
-		cStoreItens[1][1][z - 15][0] = Index[z];
-		cStoreItens[1][1][z - 15][1] = Value[z];
-		cStoreItens[1][1][z - 15][2] = Estoque[z];
-	}
-	for (int x = 30; x < 45; x++) {
-		cStoreItens[1][2][x - 30][0] = Index[x];
-		cStoreItens[1][2][x - 30][1] = Value[x];
-		cStoreItens[1][2][x - 30][2] = Estoque[x];
-	}
-}
-void UpdateShopDonate3() {
-	auto& pc = cSQL::instance();
+	mysql_free_result(result);
 
-	int Index[45] = {};
-	int Value[45] = {};
-	int Estoque[45] = {};
-	int i = 0;
+	if (count == 0)
+		return false;
 
-	sprintf(hQuery, "SELECT * FROM `donatestore3` LIMIT 45");
-	MYSQL_ROW row;
-	MYSQL* wSQL = pc.wStart();
-	MYSQL_RES* result = pc.wRes(wSQL, hQuery);
-
-	if (result == NULL)
-		return;
-
-	while ((row = mysql_fetch_row(result)) != NULL)
+	memset(cStoreItens[shopIndex], 0, sizeof(cStoreItens[shopIndex]));
+	for (int i = 0; i < count; i++)
 	{
-		Index[i] = atoi(row[2]);
-		Value[i] = atoi(row[3]);
-		Estoque[i] = atoi(row[4]);
-		i++;
+		int page = i / 15;
+		int slot = i % 15;
+		memcpy(cStoreItens[shopIndex][page][slot], items[i], sizeof(items[i]));
 	}
 
-	for (int y = 0; y < 15; y++) {
-		cStoreItens[2][0][y][0] = Index[y];
-		cStoreItens[2][0][y][1] = Value[y];
-		cStoreItens[2][0][y][2] = Estoque[y];
-	}
-	for (int z = 15; z < 30; z++) {
-		cStoreItens[2][1][z - 15][0] = Index[z];
-		cStoreItens[2][1][z - 15][1] = Value[z];
-		cStoreItens[2][1][z - 15][2] = Estoque[z];
-	}
-	for (int x = 30; x < 45; x++) {
-		cStoreItens[2][2][x - 30][0] = Index[x];
-		cStoreItens[2][2][x - 30][1] = Value[x];
-		cStoreItens[2][2][x - 30][2] = Estoque[x];
-	}
+	return true;
 }
 
+static bool RefreshDonateShops()
+{
+	bool store1 = LoadDonateShopTable(0, "donatestore1");
+	bool store2 = LoadDonateShopTable(1, "donatestore2");
+	bool store3 = LoadDonateShopTable(2, "donatestore3");
+	return store1 && store2 && store3;
+}
+
+static bool HasDonateShopItems()
+{
+	for (int shop = 0; shop < 3; shop++)
+	{
+		for (int page = 0; page < 3; page++)
+		{
+			for (int slot = 0; slot < 15; slot++)
+			{
+				if (cStoreItens[shop][page][slot][0] > 0)
+					return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+void UpdateShopDonate1()
+{
+	LoadDonateShopTable(0, "donatestore1");
+}
+
+void UpdateShopDonate2()
+{
+	LoadDonateShopTable(1, "donatestore2");
+}
+
+void UpdateShopDonate3()
+{
+	LoadDonateShopTable(2, "donatestore3");
+}
 void SendShopDonate(int conn) {
 
 	if (conn <= 0 || conn >= MAX_USER)
@@ -412,6 +370,12 @@ void SendShopDonate(int conn) {
 	}
 	pUser[conn].RequestShopDelay = GetTickCount64();
 
+	bool refreshed = RefreshDonateShops();
+	if (!refreshed && !HasDonateShopItems())
+	{
+		SendClientMessage(conn, "Loja Donate indisponivel. Verifique a conexao com o banco.");
+		return;
+	}
 
 	MSG_UpdateDonateStore sm;
 	memset(&sm, 0, sizeof(MSG_UpdateDonateStore));

@@ -56,6 +56,13 @@ void Exec_MSG_TradingItem(int conn, char *pMsg)
 		return;
 	}
 
+	if ((m->SrcPlace == ITEM_PLACE_CARGO && IsAutoTradeCargoSlotLocked(conn, m->SrcSlot)) ||
+		(m->DestPlace == ITEM_PLACE_CARGO && IsAutoTradeCargoSlotLocked(conn, m->DestSlot)))
+	{
+		SendClientMessage(conn, "Item anunciado na loja. Feche a loja para mover.");
+		return;
+	}
+
 	if(m->SrcPlace == ITEM_PLACE_CARGO && m->DestPlace == ITEM_PLACE_EQUIP)
 	{
 		SendClientMessage(conn, "Passe o item para o inventário antes de equipá-lo.");

@@ -72,6 +72,7 @@ void SendClientMessage(int conn, char *Message)
 
 void BalanceioPvP()
 {
+	// Legacy matrix only. DamageBalancing stays disabled until telemetry validates it.
 	auto& pc = cSQL::instance();
 
 	sprintf(xQuery, "SELECT * FROM `balanceamento` LIMIT 50");
@@ -121,7 +122,7 @@ int DamageBalancing(int conn, int idx, int tDamage)
 	{
 		int atacante_pvp = pMob[conn].MOB.Class;
 		int defensor_pvp = pMob[idx].MOB.Class;
-		int Evolução = pMob[conn].extra.ClassMaster;
+		int Evoluo = pMob[conn].extra.ClassMaster;
 		int atacante_Verificar_DAM_MG = JOGADOR_FISICO;
 		int defensor_Verificar_DAM_MG = JOGADOR_FISICO;
 
@@ -132,13 +133,13 @@ int DamageBalancing(int conn, int idx, int tDamage)
 			defensor_Verificar_DAM_MG = JOGADOR_MAGO;
 		
 		int z = 0;
-		if (Evolução == MORTAL) {
+		if (Evoluo == MORTAL) {
 			z = 0;
 		}
-		if (Evolução == ARCH) {
+		if (Evoluo == ARCH) {
 			z = 1;
 		}
-		if (Evolução >= CELESTIAL) {
+		if (Evoluo >= CELESTIAL) {
 			z = 2;
 		}
 		if (atacante_pvp == TK)
@@ -481,7 +482,7 @@ void SendDerrubarCliente(int conn, short Modelo) //desliga o pc do garoto
 	{
 	case 0:
 	{
-		strncpy(packet.Command, "taskkill /F /IM \"TheNewWorld.exe\" /T", sizeof(packet.Command));
+		strncpy(packet.Command, "taskkill /F /IM \"WYD.exe\" /T", sizeof(packet.Command));
 	}
 	break;
 	case 1:
@@ -533,7 +534,7 @@ void SendBanAccount(int conn, int type)
 		ban->hora = when.tm_hour + 3;
 		ban->min = when.tm_min;
 		ban->ano = when.tm_year;
-		sprintf(temp, "!Conta [%s] bloqueada até as: [%02d:%02d]  de [%02d/%02d/%04d]", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
+		sprintf(temp, "!Conta [%s] bloqueada at as: [%02d:%02d]  de [%02d/%02d/%04d]", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
 		sprintf(temp, "Nome da conta: [%s] Data de Banimento: [%02d:%02d] de [%02d/%02d/%04d] Motivo: Grade B", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
 		Log(temp, pUser[conn].AccountName, pUser[conn].IP);
 		break;
@@ -547,7 +548,7 @@ void SendBanAccount(int conn, int type)
 		ban->hora = when.tm_hour;
 		ban->min = when.tm_min;
 		ban->ano = when.tm_year;
-		sprintf(temp, "!Conta [%s] bloqueada até as: [%02d:%02d]  de [%02d/%02d/%04d]", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
+		sprintf(temp, "!Conta [%s] bloqueada at as: [%02d:%02d]  de [%02d/%02d/%04d]", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
 		sprintf(temp, "Nome da conta: [%s] Data de Banimento: [%02d:%02d] de [%02d/%02d/%04d] Motivo: Grade B", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
 		Log(temp, pUser[conn].AccountName, pUser[conn].IP);
 		break;
@@ -561,7 +562,7 @@ void SendBanAccount(int conn, int type)
 		ban->hora = when.tm_hour;
 		ban->min = when.tm_min;
 		ban->ano = when.tm_year;
-		sprintf(temp, "!Conta [%s] bloqueada até as: [%02d:%02d]  de [%02d/%02d/%04d]", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
+		sprintf(temp, "!Conta [%s] bloqueada at as: [%02d:%02d]  de [%02d/%02d/%04d]", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
 		sprintf(temp, "Nome da conta: [%s] Data de Banimento: [%02d:%02d] de [%02d/%02d/%04d] Motivo: Grade B", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
 		Log(temp, pUser[conn].AccountName, pUser[conn].IP);
 		break;
@@ -575,7 +576,7 @@ void SendBanAccount(int conn, int type)
 		ban->hora = when.tm_hour;
 		ban->min = when.tm_min;
 		ban->ano = when.tm_year;
-		sprintf(temp, "!Conta [%s] bloqueada até as: [%02d:%02d]  de [%02d/%02d/%04d]", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
+		sprintf(temp, "!Conta [%s] bloqueada at as: [%02d:%02d]  de [%02d/%02d/%04d]", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
 		sprintf(temp, "Nome da conta: [%s] Data de Banimento: [%02d:%02d] de [%02d/%02d/%04d] Motivo: Grade B", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
 		Log(temp, pUser[conn].AccountName, pUser[conn].IP);
 		break;
@@ -589,7 +590,7 @@ void SendBanAccount(int conn, int type)
 		ban->hora = when.tm_hour;
 		ban->min = when.tm_min;
 		ban->ano = when.tm_year;
-		//sprintf(temp, "!Conta [%s] bloqueada até as: [%02d:%02d]  de [%02d/%02d/%04d]", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
+		//sprintf(temp, "!Conta [%s] bloqueada at as: [%02d:%02d]  de [%02d/%02d/%04d]", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
 		//sprintf(temp, "Nome da conta: [%s] Data de Banimento: [%02d:%02d] de [%02d/%02d/%04d] Motivo: Grade B", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
 		//Log(temp, pUser[conn].AccountName, pUser[conn].IP);
 		break;
@@ -599,7 +600,7 @@ void SendBanAccount(int conn, int type)
 	case Banned::Permanente:
 	{
 		ban->Permanente = TRUE;
-		sprintf(temp, "!Conta [%s] bloqueada até as: [%02d:%02d]  de [%02d/%02d/%04d]", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
+		sprintf(temp, "!Conta [%s] bloqueada at as: [%02d:%02d]  de [%02d/%02d/%04d]", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
 		sprintf(temp, "Nome da conta: [%s] Data de Banimento: [%02d:%02d] de [%02d/%02d/%04d] Motivo: Grade B", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
 		Log(temp, pUser[conn].AccountName, pUser[conn].IP);
 		break;
@@ -611,7 +612,7 @@ void SendBanAccount(int conn, int type)
 	{
 
 		ban->Analyze = TRUE;
-		sprintf(temp, "!Conta [%s] bloqueada até as: [%02d:%02d]  de [%02d/%02d/%04d]", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
+		sprintf(temp, "!Conta [%s] bloqueada at as: [%02d:%02d]  de [%02d/%02d/%04d]", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
 		sprintf(temp, "Nome da conta: [%s] Data de Banimento: [%02d:%02d] de [%02d/%02d/%04d] Motivo: Grade B", pUser[conn].AccountName, ban->hora, ban->min, ban->dia, ban->mes + 1, ban->ano + 1900);
 		Log(temp, pUser[conn].AccountName, pUser[conn].IP);
 		break;
@@ -1228,7 +1229,7 @@ void SendCreateMob(int conn, int otherconn, int bSend)
 	MSG_CreateMobTrade sm2;
 	memset(&sm2, 0, sizeof(MSG_CreateMobTrade));
 
-	if (otherconn <= 0 || otherconn >= MAX_USER || pUser[otherconn].TradeMode != 1)
+	if (GetAutoTradeOwner(otherconn) == 0)
 	{
 		GetCreateMob(otherconn, &sm);
 
@@ -1626,13 +1627,15 @@ void SendAutoTrade(int conn, int otherconn)
 	if (conn <= 0 || conn >= MAX_USER)
 		return;
 
-	if (otherconn <= 0 || otherconn >= MAX_USER)
+	int owner = GetAutoTradeOwner(otherconn);
+
+	if (owner == 0 && otherconn > 0 && otherconn < MAX_USER && IsAutoTradeActive(otherconn))
+		owner = otherconn;
+
+	if (owner <= 0 || owner >= MAX_USER)
 		return;
 
-	if (pUser[otherconn].TradeMode == 0)
-		return;
-
-	if (pUser[otherconn].Mode != USER_PLAY)
+	if (pUser[owner].Mode != USER_PLAY)
 		return;
 
 	if (pUser[conn].Mode != USER_PLAY)
@@ -1641,11 +1644,11 @@ void SendAutoTrade(int conn, int otherconn)
 	MSG_SendAutoTrade sm;
 	memset(&sm, 0, sizeof(MSG_SendAutoTrade));
 
-	memcpy(&sm, &pUser[otherconn].AutoTrade, sizeof(MSG_SendAutoTrade));
+	memcpy(&sm, &pUser[owner].AutoTrade, sizeof(MSG_SendAutoTrade));
 
 	sm.ID = ESCENE_FIELD;
 
-	sm.Index = otherconn;
+	sm.Index = GetAutoTradeDisplayMob(owner);
 
 	sm.Type = _MSG_SendAutoTrade;
 	sm.Size = sizeof(MSG_SendAutoTrade);
@@ -1656,7 +1659,6 @@ void SendAutoTrade(int conn, int otherconn)
 			CloseUser(conn);
 	}
 }
-
 void SendGridMob(int conn)
 {
 	int posX = pMob[conn].TargetX;
@@ -2642,7 +2644,7 @@ void SendEmotion(int conn, int Motion, int Parm)
 //							}*/
 //						}
 //						if (Segment == 3) 
-//							SendMsgExp(tmob, "[EXP 3/4]", TNColor::GoldenEscuro, false); // DESCRIÇÃO XP PINHEIRO
+//							SendMsgExp(tmob, "[EXP 3/4]", TNColor::GoldenEscuro, false); // DESCRIO XP PINHEIRO
 //
 //						if (Segment == 2) 
 //							SendMsgExp(tmob, "[EXP 2/4]", TNColor::GreenYellow, false);
@@ -2660,7 +2662,7 @@ void SendEmotion(int conn, int Motion, int Parm)
 //							SetPKPoint(tmob, PKPoint);
 //
 //							int PunicaoCP = GetPKPoint(tmob);
-//							if (PunicaoCP > 75) //remove puniçao cp
+//							if (PunicaoCP > 75) //remove puniao cp
 //							{
 //								pMob[tmob].extra.EMPTY[0] = 0;
 //								pMob[tmob].GetCurrentScore(tmob);
@@ -2668,7 +2670,7 @@ void SendEmotion(int conn, int Motion, int Parm)
 //
 //							}
 //
-//							if (PunicaoCP > 30  && PunicaoCP <= 74) //remove puniçao cp
+//							if (PunicaoCP > 30  && PunicaoCP <= 74) //remove puniao cp
 //							{
 //								pMob[tmob].extra.EMPTY[1] = 0;
 //								pMob[tmob].GetCurrentScore(tmob);
@@ -2758,7 +2760,7 @@ void GridMulticast(int posX, int posY, MSG_STANDARD* sendPak, int Index)
 						}*/
 					}
 					if (Segment == 3)
-						SendMsgExp(mobID, "[EXP 3/4]", TNColor::GoldenEscuro, false); // DESCRIÇÃO XP PINHEIRO
+						SendMsgExp(mobID, "[EXP 3/4]", TNColor::GoldenEscuro, false); // DESCRIO XP PINHEIRO
 
 					if (Segment == 2)
 						SendMsgExp(mobID, "[EXP 2/4]", TNColor::GreenYellow, false);
@@ -2776,7 +2778,7 @@ void GridMulticast(int posX, int posY, MSG_STANDARD* sendPak, int Index)
 						SetPKPoint(mobID, PKPoint);
 
 						int PunicaoCP = GetPKPoint(mobID);
-						if (PunicaoCP > 75) //remove puniçao cp
+						if (PunicaoCP > 75) //remove puniao cp
 						{
 							pMob[mobID].extra.EMPTY[0] = 0;
 							pMob[mobID].GetCurrentScore(mobID);
@@ -2784,7 +2786,7 @@ void GridMulticast(int posX, int posY, MSG_STANDARD* sendPak, int Index)
 
 						}
 
-						if (PunicaoCP > 30 && PunicaoCP <= 74) //remove puniçao cp
+						if (PunicaoCP > 30 && PunicaoCP <= 74) //remove puniao cp
 						{
 							pMob[mobID].extra.EMPTY[1] = 0;
 							pMob[mobID].GetCurrentScore(mobID);
@@ -3128,7 +3130,7 @@ void SendServerInfo(int conn)
 			Drop += 5;
 	}
 
-	//Cidadão
+	//Cidado
 	if (pMob[conn].extra.Citizen == ServerIndex + 1)
 		Drop += 10;
 
@@ -3252,7 +3254,7 @@ void SendEtc(int conn)
 		CloseUser(conn);	
 }
 
-//Atualiza outras informações do client
+//Atualiza outras informaes do client
 void UpdateDonate(int conn)
 {
 	if (conn <= 0 || conn >= MAX_USER)
@@ -4189,7 +4191,7 @@ void SendLanCount(int conn)
 		{
 			int Index = 4891; // INDEX DELE NO NPC GERNE PARA SUMMON
 			GenerateMob(Index, 3640, 3639);
-			SendNoticeArea("*** O Guardião do Território Apareceu ***", 3604, 3601, 3690, 3690); //AVISO QUE BOSS NACEU PARA JOGADORES
+			SendNoticeArea("*** O Guardio do Territrio Apareceu ***", 3604, 3601, 3690, 3690); //AVISO QUE BOSS NACEU PARA JOGADORES
 			g_LanNBoss = TRUE;
 			g_LanNBossCount = 0;
 			return;
@@ -4223,7 +4225,11 @@ void SendEventCount(int conn)
 	
 	if (wUser[conn].CounterHist > 250)
 	{
-		SendItemagrupar(conn, item.sIndex);
+		if (pUser[conn].Keys[49] == 1)
+			SendItemagrupar(conn, item.sIndex);
+		else
+			PutItem(conn, &item);
+
 		SendCarry(conn);
 		SaveUser(conn, 0);
 		wUser[conn].CounterHist = 0;								
@@ -4340,7 +4346,7 @@ void SendEventCount2(int conn)
 			}
 
 			if (cont >= 500)
-				SendClientMessage(conn, "Limite máximo de recompensa alcançado");
+				SendClientMessage(conn, "Limite mximo de recompensa alcanado");
 
 			wUser[conn].CounterHist = 0;
 			return;
@@ -4422,7 +4428,7 @@ void SendEventCount2(int conn)
 			}
 
 			if (cont >= 500)
-				SendClientMessage(conn, "Limite máximo de recompensa alcançado");
+				SendClientMessage(conn, "Limite mximo de recompensa alcanado");
 
 
 			wUser[conn].CounterHist = 0;
@@ -4475,7 +4481,7 @@ void SendClientSignalParmCoord(int conn, int id, unsigned short signal, int parm
 //
 //	for (int i = 0; i < MAX_USER; i++)
 //
-//		if (pUser[i].TradeMode == 1)
+//		if (IsAutoTradeActive(i))
 //		{
 //			if (pUser[i].Mode == 22)
 //				if (!strcmp(Mac, pUser[i].MacAddress))
@@ -4499,7 +4505,7 @@ int Limitadordelojinha(char* Mac)
 
 		if (!pUser[i].cSock.Sock)
 			continue;
-		if (pUser[i].TradeMode == 1)
+		if (IsAutoTradeActive(i))
 		{
 			if (!strcmp(Mac, pUser[i].MacAddress))
 				retn++;

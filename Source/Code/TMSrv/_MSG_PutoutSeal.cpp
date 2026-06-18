@@ -42,6 +42,13 @@ void Exec_MSG_PutoutSeal(int conn, char *pMsg)
 		return;
 	}
 
+	if ((m->SourType == ITEM_PLACE_CARGO && IsAutoTradeCargoSlotLocked(conn, m->SourPos)) ||
+		(m->DestType == ITEM_PLACE_CARGO && IsAutoTradeCargoSlotLocked(conn, m->DestPos)))
+	{
+		SendClientMessage(conn, "Item anunciado na loja. Feche a loja para alterar.");
+		return;
+	}
+
 	if (pMob[conn].MOB.CurrentScore.Hp == 0)
 	{
 		SendHpMode(conn);

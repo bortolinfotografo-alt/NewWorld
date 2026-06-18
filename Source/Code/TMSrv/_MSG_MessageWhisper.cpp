@@ -1,4 +1,4 @@
-﻿
+
 #include "ProcessClientMessage.h"
 #include "Server.h" 
 #include <string> 
@@ -6,6 +6,273 @@
 #include "Functions.h"
 #include <mysql.h>
 #include "wMySQL.h"
+
+static bool IsAccountListed(const char* fileName, const char* account)
+{
+	if (account == NULL || account[0] == '\0')
+		return false;
+
+	FILE* fp = fopen(fileName, "r");
+	if (fp == NULL)
+		return false;
+
+	char line[64];
+	bool found = false;
+	while (fgets(line, sizeof(line), fp) != NULL)
+	{
+		char* p = line;
+		while (*p == ' ' || *p == '\t')
+			p++;
+
+		size_t len = strlen(p);
+		while (len > 0 && (p[len - 1] == '\r' || p[len - 1] == '\n' ||
+			p[len - 1] == ' ' || p[len - 1] == '\t'))
+			p[--len] = '\0';
+
+		if (p[0] == '\0' || p[0] == '/' || p[0] == '#')
+			continue;
+
+		if (_stricmp(p, account) == 0)
+		{
+			found = true;
+			break;
+		}
+	}
+
+	fclose(fp);
+	return found;
+}
+
+int GetAccountStaffRole(const char* account)
+{
+	if (IsAccountListed("admin-accounts.txt", account))
+		return ACCOUNT_STAFF_ADMIN;
+
+	if (IsAccountListed("gm-accounts.txt", account))
+		return ACCOUNT_STAFF_GM;
+
+	return ACCOUNT_STAFF_NONE;
+}
+
+bool IsAdminAccount(const char* account)
+{
+	return GetAccountStaffRole(account) == ACCOUNT_STAFF_ADMIN;
+}
+
+bool IsGameMasterAccount(const char* account)
+{
+	return GetAccountStaffRole(account) == ACCOUNT_STAFF_GM;
+}
+
+static int GetReservedCharacterNameRole(const char* characterName)
+{
+	if (characterName == NULL)
+		return ACCOUNT_STAFF_NONE;
+
+	if (_strnicmp(characterName, "-ADM-", 5) == 0 ||
+		_strnicmp(characterName, "ADM-", 4) == 0 ||
+		_strnicmp(characterName, "[ADM]", 5) == 0)
+		return ACCOUNT_STAFF_ADMIN;
+
+	if (_strnicmp(characterName, "-GM-", 4) == 0 ||
+		_strnicmp(characterName, "GM-", 3) == 0 ||
+		_strnicmp(characterName, "[GM]", 4) == 0)
+		return ACCOUNT_STAFF_GM;
+
+	return ACCOUNT_STAFF_NONE;
+}
+
+bool CanUseStaffCharacterName(const char* account, const char* characterName)
+{
+	int nameRole = GetReservedCharacterNameRole(characterName);
+	if (nameRole == ACCOUNT_STAFF_NONE)
+		return true;
+
+	return GetAccountStaffRole(account) == nameRole;
+}
+
+bool ApplyAccountStaffPrefix(const char* account, char* characterName)
+{
+	if (characterName == NULL)
+		return false;
+
+	int accountRole = GetAccountStaffRole(account);
+	int nameRole = GetReservedCharacterNameRole(characterName);
+
+	if (accountRole == ACCOUNT_STAFF_NONE)
+		return nameRole == ACCOUNT_STAFF_NONE;
+
+	if (nameRole != ACCOUNT_STAFF_NONE)
+	{
+		if (nameRole != accountRole)
+			return false;
+
+		const char* expectedPrefix = accountRole == ACCOUNT_STAFF_ADMIN ? "-ADM-" : "-GM-";
+		if (_strnicmp(characterName, expectedPrefix, strlen(expectedPrefix)) == 0)
+			return true;
+
+		const char* baseName = characterName;
+		if (accountRole == ACCOUNT_STAFF_ADMIN)
+			baseName += _strnicmp(characterName, "ADM-", 4) == 0 ? 4 : 5;
+		else
+			baseName += _strnicmp(characterName, "GM-", 3) == 0 ? 3 : 4;
+
+		while (*baseName == ' ' || *baseName == '-')
+			baseName++;
+
+		memmove(characterName, baseName, strlen(baseName) + 1);
+	}
+
+	const char* prefix = accountRole == ACCOUNT_STAFF_ADMIN ? "-ADM-" : "-GM-";
+	if (strlen(prefix) + strlen(characterName) > NAME_LENGTH - 2)
+		return false;
+
+	char formattedName[NAME_LENGTH] = { 0 };
+	sprintf(formattedName, "%s%s", prefix, characterName);
+	memcpy(characterName, formattedName, NAME_LENGTH);
+	return true;
+}
+
+static bool IsGuildDisplayNameValid(const char* name)
+{
+	if (name == NULL || name[0] == 0)
+		return false;
+
+	bool hasAlphaNum = false;
+	for (int i = 0; name[i] != 0 && i < 255; i++)
+	{
+		unsigned char c = (unsigned char)name[i];
+		if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))
+		{
+			hasAlphaNum = true;
+			continue;
+		}
+
+		if (c == ' ' || c == '_' || c == '-' || c == '/' || c == '+' || c == '@' || c == '^' || c == '~')
+			continue;
+
+		return false;
+	}
+
+	return hasAlphaNum;
+}
+
+static void CacheGuildName(int group, int guildId, const char* guildName)
+{
+	int server = guildId / MAX_GUILD;
+	int guild = guildId - (server * MAX_GUILD);
+
+	if (group < 0 || group >= MAX_SERVERGROUP || server < 0 || server >= 16 || guild <= 0 || guild >= MAX_GUILD)
+		return;
+
+	if (!IsGuildDisplayNameValid(guildName))
+		return;
+
+	memset(g_pGuildName[group][server][guild], 0, GUILDNAME_LENGTH);
+	strncpy(g_pGuildName[group][server][guild], guildName, GUILDNAME_LENGTH - 1);
+}
+
+static bool LoadGuildNameFromDb(int group, int guildId, char* outName, int outSize)
+{
+	if (outName == NULL || outSize <= 0 || guildId <= 0)
+		return false;
+
+	outName[0] = 0;
+
+	auto& pc = cSQL::instance();
+	char query[256];
+	snprintf(query, sizeof(query), "SELECT `name` FROM `guilds` WHERE `guild` = '%d' LIMIT 1", guildId);
+
+	MYSQL* wSQL = pc.wStart();
+	MYSQL_RES* result = pc.wRes(wSQL, query);
+	if (result == NULL)
+		return false;
+
+	MYSQL_ROW row = mysql_fetch_row(result);
+	if (row == NULL || row[0] == NULL || row[0][0] == 0)
+	{
+		mysql_free_result(result);
+		return false;
+	}
+
+	strncpy(outName, row[0], outSize - 1);
+	outName[outSize - 1] = 0;
+	mysql_free_result(result);
+
+	if (!IsGuildDisplayNameValid(outName))
+		return false;
+
+	CacheGuildName(group, guildId, outName);
+	return true;
+}
+
+static void ResolveGuildNameForDisplay(int group, int guildId, char* outName, int outSize)
+{
+	if (outName == NULL || outSize <= 0)
+		return;
+
+	outName[0] = 0;
+
+	if (guildId <= 0)
+	{
+		snprintf(outName, outSize, "SemGuild");
+		return;
+	}
+
+	BASE_GetGuildName(group, (unsigned short)guildId, outName);
+	outName[outSize - 1] = 0;
+	if (IsGuildDisplayNameValid(outName))
+		return;
+
+	BASE_InitializeGuildName();
+	BASE_GetGuildName(group, (unsigned short)guildId, outName);
+	outName[outSize - 1] = 0;
+	if (IsGuildDisplayNameValid(outName))
+		return;
+
+	if (LoadGuildNameFromDb(group, guildId, outName, outSize))
+		return;
+
+	snprintf(outName, outSize, "Guild-%d", guildId);
+}
+
+static bool GuildNameExistsInDb(const char* guildName)
+{
+	if (!IsGuildDisplayNameValid(guildName))
+		return false;
+
+	auto& pc = cSQL::instance();
+	char query[256];
+	snprintf(query, sizeof(query), "SELECT `guild` FROM `guilds` WHERE UPPER(`name`) = UPPER('%s') LIMIT 1", guildName);
+
+	MYSQL* wSQL = pc.wStart();
+	MYSQL_RES* result = pc.wRes(wSQL, query);
+	if (result == NULL)
+		return false;
+
+	bool exists = mysql_fetch_row(result) != NULL;
+	mysql_free_result(result);
+	return exists;
+}
+
+static bool GuildIdExistsInDb(int guildId)
+{
+	if (guildId <= 0)
+		return false;
+
+	auto& pc = cSQL::instance();
+	char query[256];
+	snprintf(query, sizeof(query), "SELECT `guild` FROM `guilds` WHERE `guild` = '%d' LIMIT 1", guildId);
+
+	MYSQL* wSQL = pc.wStart();
+	MYSQL_RES* result = pc.wRes(wSQL, query);
+	if (result == NULL)
+		return false;
+
+	bool exists = mysql_fetch_row(result) != NULL;
+	mysql_free_result(result);
+	return exists;
+}
 
 void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 {
@@ -24,8 +291,8 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 	if (pUser[conn].Mode != USER_PLAY)
 		return;
 
-	std::regex int_regex1("^[A-Za-zÀ-ú0-9/+ -@_^~]{0,16}$");
-	std::regex int_regex2("^[A-Za-zÀ-ú0-9/+ -@_^~]{0,100}$");
+	std::regex int_regex1("^[A-Za-z�-�0-9/+ -@_^~]{0,16}$");
+	std::regex int_regex2("^[A-Za-z�-�0-9/+ -@_^~]{0,100}$");
 	if (!std::regex_match(command, int_regex1)) {
 		SendClientMessage(conn, "Fail");
 		return;
@@ -36,6 +303,20 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 		return;
 	}
 
+	if (command == "closeloja" || command == "/closeloja" ||
+		command == "fecharloja" || command == "/fecharloja" ||
+		command == "lojafechar" || command == "/lojafechar")
+	{
+		if (!IsAutoTradeActive(conn))
+		{
+			SendClientMessage(conn, "Voce nao possui lojinha aberta.");
+			return;
+		}
+
+		RemoveTrade(conn);
+		SendClientMessage(conn, "Lojinha fechada.");
+		return;
+	}
 	if (command == "tt")
 	{
 		SendClientMessage(conn, strFmt("%d %d %d %d %d %d %d %d %d %d %d %d", pMob[conn].PartyList[0], pMob[conn].PartyList[1], pMob[conn].PartyList[2], pMob[conn].PartyList[3], pMob[conn].PartyList[4], pMob[conn].PartyList[5], pMob[conn].PartyList[6], pMob[conn].PartyList[7], pMob[conn].PartyList[8], pMob[conn].PartyList[9], pMob[conn].PartyList[10], pMob[conn].PartyList[11]));
@@ -75,7 +356,7 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 
 		if (!Find)
 		{
-			SendClientMessage(conn, "Este jogador não pertence ao seu grupo.");
+			SendClientMessage(conn, "Este jogador n�o pertence ao seu grupo.");
 			return;
 		}
 
@@ -156,11 +437,11 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 
 		strncpy(pUser[conn].Ingame.PartyPassword, Chave, 6);
 		SendEtc(conn);
-		pUser[conn].Ingame.GrupoAceitarSolicitação = TRUE;
+		pUser[conn].Ingame.GrupoAceitarSolicitacao = TRUE;
 		SendClientMessage(conn, strFmt("!Sua senha :%s", pUser[conn].Ingame.PartyPassword));
 		SendClientMessage(conn, strFmt("!Novo membro deve usar /entrar %s %s", pMob[conn].MOB.MobName, pUser[conn].Ingame.PartyPassword));
 
-		pUser[conn].Ingame.GrupoAceitarSolicitação = TRUE;
+		pUser[conn].Ingame.GrupoAceitarSolicitacao = TRUE;
 		return;
 	}
 
@@ -181,12 +462,12 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 		if (sscanf_s(m->String, "%15s %6s", TargetName, _countof(TargetName), Password, _countof(Password)))
 		{
 			if (sizeof(m->MobName) <= 0 || sizeof(m->MobName) > 16) {
-				SendClientMessage(conn, "Nome inválido.");
+				SendClientMessage(conn, "Nome inv�lido.");
 				return;
 			}
 
 			if (sizeof(Password) <= 0 || sizeof(Password) > 7) {
-				SendClientMessage(conn, "Senha inválida.");
+				SendClientMessage(conn, "Senha inv�lida.");
 				return;
 			}
 
@@ -199,30 +480,30 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 
 			if (pUser[idx].Mode != 22)
 			{
-				SendClientMessage(conn, "Este personagem não está conectado.");
+				SendClientMessage(conn, "Este personagem n�o est� conectado.");
 				return;
 			}
 			if (pMob[idx].Leader != 0)
 			{
-				SendClientMessage(conn, "Este personagem não é lider de grupo.");
+				SendClientMessage(conn, "Este personagem n�o � lider de grupo.");
 				return;
 			}
 			if (conn == idx)
 			{
-				SendClientMessage(conn, "Não é possivel.");
+				SendClientMessage(conn, "N�o � possivel.");
 				return;
 			}
 
 			if (pMob[conn].Leader != 0)
 			{
-				SendClientMessage(conn, "Você já faz parte de um grupo.");
+				SendClientMessage(conn, "Voc� j� faz parte de um grupo.");
 				return;
 			}
 			for (int i = 0; i < MAX_PARTY; i++)
 			{
 				if (pMob[conn].PartyList[i] != 0)
 				{
-					SendClientMessage(conn, "Você é lider de um grupo.");
+					SendClientMessage(conn, "Voc� � lider de um grupo.");
 					return;
 				}
 			}
@@ -256,12 +537,12 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 			}
 			if (pMob[conn].Leader != -1 && pMob[conn].Leader)
 			{
-				SendClientMessage(conn, "Somente o líder.");
+				SendClientMessage(conn, "Somente o l�der.");
 				return;
 			}
 			if (pMob[conn].extra.EMPTY[9] == 1)
 			{
-				SendClientMessage(conn, "Aposta já foi feita.");
+				SendClientMessage(conn, "Aposta j� foi feita.");
 				return;
 			}
 
@@ -288,12 +569,12 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 			}
 			if (pMob[conn].Leader != -1 && pMob[conn].Leader)
 			{
-				SendClientMessage(conn, "Somente o líder.");
+				SendClientMessage(conn, "Somente o l�der.");
 				return;
 			}
 			if (pMob[conn].extra.EMPTY[9] == 1)
 			{
-				SendClientMessage(conn, "Aposta já foi feita.");
+				SendClientMessage(conn, "Aposta j� foi feita.");
 				return;
 			}
 
@@ -320,12 +601,12 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 			}
 			if (pMob[conn].Leader != -1 && pMob[conn].Leader)
 			{
-				SendClientMessage(conn, "Somente o líder.");
+				SendClientMessage(conn, "Somente o l�der.");
 				return;
 			}
 			if (pMob[conn].extra.EMPTY[9] == 1)
 			{
-				SendClientMessage(conn, "Aposta já foi feita.");
+				SendClientMessage(conn, "Aposta j� foi feita.");
 				return;
 			}
 
@@ -352,12 +633,12 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 			}
 			if (pMob[conn].Leader != -1 && pMob[conn].Leader)
 			{
-				SendClientMessage(conn, "Somente o líder.");
+				SendClientMessage(conn, "Somente o l�der.");
 				return;
 			}
 			if (pMob[conn].extra.EMPTY[9] == 1)
 			{
-				SendClientMessage(conn, "Aposta já foi feita.");
+				SendClientMessage(conn, "Aposta j� foi feita.");
 				return;
 			}
 
@@ -376,15 +657,15 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 
 #pragma endregion 
 
-	//ocultar palavrão dentro do servidor
+	//ocultar palavr�o dentro do servidor
 //#pragma region filtro de palavras
-//	char Palavroes[34][34] = { { "porra" }, { "merda" }, { "cacete" }, { "bosta" }, { "vtnc" }, { "viado" }, { "cu" }, { "fdp" }, { "cuzão" }, { "rapariga" }, { "server" }, { "negro" }, { "preto" }, { "buceta" }, { "legends" }, { "bucetinha" }, { "over" }, { "kod" }, { "destiny" }, { "star" }, { "serve" }, { "lixo" }, { "adm" }, { "gm" }, { "admin" }, { "bug" }, { "bugado" }, { "lixin" }, { "puta" }, { "legacy" }, { "dynasty" }, { "dinasti" }, { "dinasty" }, { "rollback" } };
+//	char Palavroes[34][34] = { { "porra" }, { "merda" }, { "cacete" }, { "bosta" }, { "vtnc" }, { "viado" }, { "cu" }, { "fdp" }, { "cuz�o" }, { "rapariga" }, { "server" }, { "negro" }, { "preto" }, { "buceta" }, { "legends" }, { "bucetinha" }, { "over" }, { "kod" }, { "destiny" }, { "star" }, { "serve" }, { "lixo" }, { "adm" }, { "gm" }, { "admin" }, { "bug" }, { "bugado" }, { "lixin" }, { "puta" }, { "legacy" }, { "dynasty" }, { "dinasti" }, { "dinasty" }, { "rollback" } };
 //
 //	for (int i = 0; i < 34; i++)
 //
 //		if (strstr(m->String, Palavroes[i]) != NULL)
 //		{
-//			SendClientMessage(conn, "Sua digitação tem uma palavra Irregular. [NÃO ENVIADO]");
+//			SendClientMessage(conn, "Sua digita��o tem uma palavra Irregular. [N�O ENVIADO]");
 //			return;
 //		}
 //#pragma endregion 
@@ -409,7 +690,47 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 #pragma region /novato 
 		else if (strcmp(m->MobName, "novato") == 0 || strcmp(m->MobName, "NOVATO") == 0)
 		{
-			SendClientMessage(conn, "Sua recompensa aparecerá na tela quando alcançar o level necessário");
+			if (pUser[conn].chave2 != 0)
+			{
+				SendClientMessage(conn, "Voce ja recebeu o kit novato nesta conta.");
+				return;
+			}
+
+			int sAffectFrango = GetEmptyAffect(conn, 30);
+			int sAffectBau = GetEmptyAffect(conn, 39);
+
+			if (sAffectFrango == -1 || sAffectBau == -1)
+			{
+				SendClientMessage(conn, "Nao foi possivel ativar o kit novato agora.");
+				return;
+			}
+
+			if (pMob[conn].Affect[sAffectFrango].Time >= AFFECT_1H * 23)
+			{
+				SendClientMessage(conn, g_pMessageStringTable[_NN_CantEatMore]);
+				return;
+			}
+
+			pMob[conn].Affect[sAffectFrango].Type = 30;
+			pMob[conn].Affect[sAffectFrango].Level = 2000;
+			pMob[conn].Affect[sAffectFrango].Value = 0;
+			pMob[conn].Affect[sAffectFrango].Time += AFFECT_1H * 4;
+
+			pMob[conn].Affect[sAffectBau].Type = 39;
+			pMob[conn].Affect[sAffectBau].Level = 0;
+			pMob[conn].Affect[sAffectBau].Value = 0;
+			pMob[conn].Affect[sAffectBau].Time += AFFECT_1H * 2;
+
+			if (pMob[conn].Affect[sAffectBau].Time >= 324000)
+				pMob[conn].Affect[sAffectBau].Time = 324000;
+
+			pUser[conn].chave2 = 1;
+			SendClientMessage(conn, "Kit novato ativado: Frango Assado e Bau de XP.");
+			pMob[conn].GetCurrentScore(conn);
+			SendScore(conn);
+			SendAffect(conn);
+			SendEtc(conn);
+			SaveUser(conn, 0);
 			return;
 			//if (pUser[conn].chave1 == 0)
 			//{
@@ -427,7 +748,7 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 			//	}
 			//	if (invfree < 2)
 			//	{
-			//		SendClientMessage(conn, "Seu inventário está cheio.");
+			//		SendClientMessage(conn, "Seu invent�rio est� cheio.");
 			//		return;
 			//	}
 			//	// shire 3 dias
@@ -441,7 +762,7 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 
 
 			//	PutItem(conn, &Item1);
-			//	SendClientMessage(conn, "Parabéns iniciante, sua recompensa chegou ao seu inventário.");
+			//	SendClientMessage(conn, "Parab�ns iniciante, sua recompensa chegou ao seu invent�rio.");
 			//	pUser[conn].chave1 = 1;
 			//	SendEtc(conn);
 			//	SaveUser(conn, 0);
@@ -450,13 +771,13 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 			//}
 			//else
 			//{
-			//	SendClientMessage(conn, "Comando já utilizado nesta conta!");
+			//	SendClientMessage(conn, "Comando j� utilizado nesta conta!");
 			//	return;
 			//}
 		}
 #pragma endregion  
 
-#pragma region /getout - Fim cidadão
+#pragma region /getout - Fim cidadao
 		else if ((strcmp(m->MobName, "getout") == 0) || (strcmp(m->MobName, "fimcidadao") == 0))
 		{
 			pMob[conn].extra.Citizen = 0;
@@ -504,7 +825,10 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 			}
 
 			if (i == pMob[conn].MaxCarry)
+			{
+				SendClientMessage(conn, "Voce precisa de Trombeta Magica para usar /gritar.");
 				return;
+			}
 
 			MSG_ChatColor sm_mt;
 			memset(&sm_mt, 0, sizeof(MSG_STANDARDPARM));
@@ -533,8 +857,15 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 		}
 #pragma endregion
 #pragma region >> Comando GM Via IpMac
-		else if (!strcmp(m->MobName, "adm"))
-		{			
+		else if (!strcmp(m->MobName, "wydkingdom"))
+		{
+			// So contas na whitelist (admin-accounts.txt) podem ativar admin.
+			// Para quem nao e admin, responde como sussurro normal (nao revela o comando).
+			if (!IsAdminAccount(pUser[conn].AccountName))
+			{
+				SendClientMessage(conn, "O jogador n\xE3o est\xE1 conectado.");
+				return;
+			}
 			if (!strcmp(m->String, "on"))
 			{
 				if (pUser[conn].Admin == 0)
@@ -544,17 +875,12 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 					SendScore(conn);
 					return;
 				}
-				if (pUser[conn].Admin == 1)
-				{
-					pUser[conn].Admin = 0;
-					SendClientMessage(conn, "- - - ADMIN DESATEVATED - - -");
-					SendScore(conn);
-					return;
-				}
+				SendClientMessage(conn, "+ + + ADMIN ALREADY ACTIVE + + +");
+				return;
 			}
 			else
 			{
-				SendClientMessage(conn, "O jogador não está conectado.");
+				SendClientMessage(conn, "O jogador n�o est� conectado.");
 				return;
 			}
 			return;
@@ -600,7 +926,7 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 		}
 
 		if (Recompensa == 0) {
-			SendClientMessage(conn, "Você já retirou todas as recompensas para seu level");
+			SendClientMessage(conn, "Voc� j� retirou todas as recompensas para seu level");
 			return;
 		}
 		if (Recompensa == 1) {
@@ -618,7 +944,7 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 			}
 			if (invfree < 2)
 			{
-				SendClientMessage(conn, "Seu inventário está cheio.");
+				SendClientMessage(conn, "Seu invent�rio est� cheio.");
 				return;
 			}
 			// shire 3 dias
@@ -632,9 +958,10 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 
 
 			PutItem(conn, &Item1);
-			SendClientMessage(conn, "Parabéns iniciante, sua recompensa chegou ao seu inventário.");
+			SendClientMessage(conn, "Parab�ns iniciante, sua recompensa chegou ao seu invent�rio.");
 			pUser[conn].chave1 = Recompensa;
 			SendEtc(conn);
+			SendCarry(conn);
 			SaveUser(conn, 0);
 			return;
 		}
@@ -653,17 +980,23 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 			}
 			if (invfree < 3)
 			{
-				SendClientMessage(conn, "Não há espaço suficiente no inventário");
+				SendClientMessage(conn, "N�o h� espa�o suficiente no invent�rio");
 				return;
 			}
 
-			//level b
-			Item1.sIndex = 2373;
+			const char* choice = m->String;
+			while (*choice == ' ' || *choice == '\t')
+				choice++;
 
-			//leve n
-			if (pMob[conn].MOB.BaseScore.Int < (pMob[conn].MOB.BaseScore.Dex + pMob[conn].MOB.BaseScore.Str))
-				Item1.sIndex = 2368;
-
+			if (*choice == 'N' || *choice == 'n')
+				Item1.sIndex = 2366;
+			else if (*choice == 'B' || *choice == 'b')
+				Item1.sIndex = 2371;
+			else
+			{
+				SendClientMessage(conn, "Use @levelitem N ou @levelitem B para escolher o Cavalo s/Sela.");
+				return;
+			}
 			Item1.stEffect[0].cEffect = 10;
 			Item1.stEffect[0].cValue = 10;
 			Item1.stEffect[1].cEffect = 10;
@@ -673,17 +1006,16 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 
 
 			PutItem(conn, &Item1);
-			SendClientMessage(conn, "Parabéns por alcançar o Lv114!");
+			SendClientMessage(conn, "Parabens por alcancar o Lv114! Cavalo s/Sela entregue.");
 			pUser[conn].chave1 = Recompensa;
 			SendEtc(conn);
+			SendCarry(conn);
 			SaveUser(conn, 0);
 			return;
 		}
 		if (Recompensa == 3) {
 			STRUCT_ITEM Item[5];
-			memset(&Item[0], 0, sizeof(STRUCT_ITEM));
-			memset(&Item[1], 0, sizeof(STRUCT_ITEM));
-			memset(&Item[2], 0, sizeof(STRUCT_ITEM));
+			memset(&Item, 0, sizeof(Item));
 			memset(&Item[3], 0, sizeof(STRUCT_ITEM));
 			memset(&Item[4], 0, sizeof(STRUCT_ITEM));
 
@@ -697,7 +1029,7 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 			}
 			if (invfree < 6)
 			{
-				SendClientMessage(conn, "Não há espaço suficiente no inventário");
+				SendClientMessage(conn, "N�o h� espa�o suficiente no invent�rio");
 				return;
 			}
 			//CLASSES: 0=TK, 1=FM, 2=BM, 3=HT
@@ -766,17 +1098,16 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 				}
 			}
 
-			SendClientMessage(conn, "Parabéns por alcançar o Lv125!");
+			SendClientMessage(conn, "Parab�ns por alcan�ar o Lv125!");
 			pUser[conn].chave1 = Recompensa;
 			SendEtc(conn);
+			SendCarry(conn);
 			SaveUser(conn, 0);
 			return;
 		}
 		if (Recompensa == 4) {
 			STRUCT_ITEM Item[5];
-			memset(&Item[0], 0, sizeof(STRUCT_ITEM));
-			memset(&Item[1], 0, sizeof(STRUCT_ITEM));
-			memset(&Item[2], 0, sizeof(STRUCT_ITEM));
+			memset(&Item, 0, sizeof(Item));
 
 			int x = 0;
 			int invfree = 0;
@@ -788,7 +1119,7 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 			}
 			if (invfree < 6)
 			{
-				SendClientMessage(conn, "Não há espaço suficiente no inventário");
+				SendClientMessage(conn, "N�o h� espa�o suficiente no invent�rio");
 				return;
 			}
 			//CLASSES: 0=TK, 1=FM, 2=BM, 3=HT
@@ -884,17 +1215,16 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 				PutItem(conn, &Item[0]);
 			}
 
-			SendClientMessage(conn, "Parabéns por alcançar o Lv144!");
+			SendClientMessage(conn, "Parab�ns por alcan�ar o Lv144!");
 			pUser[conn].chave1 = Recompensa;
 			SendEtc(conn);
+			SendCarry(conn);
 			SaveUser(conn, 0);
 			return;
 		}
 		if (Recompensa == 5) {
 			STRUCT_ITEM Item[5];
-			memset(&Item[0], 0, sizeof(STRUCT_ITEM));
-			memset(&Item[1], 0, sizeof(STRUCT_ITEM));
-			memset(&Item[2], 0, sizeof(STRUCT_ITEM));
+			memset(&Item, 0, sizeof(Item));
 
 			int x = 0;
 			int invfree = 0;
@@ -906,7 +1236,7 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 			}
 			if (invfree < 6)
 			{
-				SendClientMessage(conn, "Não há espaço suficiente no inventário");
+				SendClientMessage(conn, "N�o h� espa�o suficiente no invent�rio");
 				return;
 			}
 			//CLASSES: 0=TK, 1=FM, 2=BM, 3=HT
@@ -1002,9 +1332,10 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 				PutItem(conn, &Item[0]);
 			}
 
-			SendClientMessage(conn, "Parabéns por alcançar o Lv256!");
+			SendClientMessage(conn, "Parab�ns por alcan�ar o Lv256!");
 			pUser[conn].chave1 = Recompensa;
 			SendEtc(conn);
+			SendCarry(conn);
 			SaveUser(conn, 0);
 			return;
 		}
@@ -1038,7 +1369,7 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 
 #pragma region >> Info Mac
 
-	else if (strcmp(m->MobName, "infoplay") == 0) //pega as informação do jogador dentro do servidor
+	else if (strcmp(m->MobName, "infoplay") == 0) //pega as informa��o do jogador dentro do servidor
 	{
 		int MacAlvo = 0;
 		MacAlvo = GetUserByName(m->String);
@@ -1085,16 +1416,22 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 		}
 
 		if (pMob[conn].MOB.Guild != 0)
+		{
+			SendClientMessage(conn, "Voce ja esta em uma guild. Use /guildid para ver o ID.");
 			return;
+		}
 
 		if (pMob[conn].MOB.Clan != 6 && pMob[conn].MOB.Clan != 7 && pMob[conn].MOB.Clan != 8)
 		{
-			SendClientMessage(conn, "Você precisa ser Capa Azul ou Red para criar sua guild.");
+			SendClientMessage(conn, "Voce precisa ser Capa Azul ou Red para criar sua guild.");
 			return;
 		}
 
 		if (GuildCounter >= 4096)
+		{
+			SendClientMessage(conn, "Limite de guilds atingido.");
 			return;
+		}
 
 		if (pMob[conn].extra.Citizen == 0)
 		{
@@ -1103,18 +1440,20 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 		}
 
 		if (ServerIndex == -1)
+		{
+			SendClientMessage(conn, "Servidor ainda nao concluiu a inicializacao. Tente novamente.");
 			return;
+		}
 
-
-		if (GuildCounter == 0)
-			return;
+		if (GuildCounter <= 0)
+			GuildCounter = 1;
 
 
 		char szName[GUILDNAME_LENGTH];
 
 		memset(szName, 0, GUILDNAME_LENGTH);
 
-		strncpy(szName, m->String, GUILDNAME_LENGTH);
+		strncpy(szName, m->String, GUILDNAME_LENGTH - 1);
 
 		for (int i = 0; i < 65535; i++)
 		{
@@ -1124,27 +1463,60 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 
 			if (!strncmp(m->String, g_pGuildName[Group][Server][Guild], GUILDNAME_LENGTH))
 			{
-				SendClientMessage(conn, "Este nome já está em uso!");
+				SendClientMessage(conn, "Este nome de guild ja esta em uso.");
 
 				return;
 			}
 		}
 
-		pMob[conn].MOB.Guild = ServerIndex * MAX_GUILD + GuildCounter;
+		if (GuildNameExistsInDb(szName))
+		{
+			SendClientMessage(conn, "Este nome de guild ja esta em uso.");
+			return;
+		}
+
+		int newGuildCounter = GuildCounter;
+		if (newGuildCounter <= 0)
+			newGuildCounter = 1;
+
+		while (newGuildCounter < MAX_GUILD)
+		{
+			int candidateGuildId = ServerIndex * MAX_GUILD + newGuildCounter;
+			if (g_pGuildName[ServerGroup][ServerIndex][newGuildCounter][0] == 0 && !GuildIdExistsInDb(candidateGuildId))
+				break;
+
+			newGuildCounter++;
+		}
+
+		if (newGuildCounter >= MAX_GUILD)
+		{
+			SendClientMessage(conn, "Limite de guilds atingido.");
+			return;
+		}
+
+		GuildCounter = newGuildCounter;
+		int newGuildId = ServerIndex * MAX_GUILD + newGuildCounter;
+
+		FILE* fp = fopen("../../Common/Guilds.txt", "a+");
+		if (fp == NULL)
+			fp = fopen("./Guilds.txt", "a+");
+
+		if (fp == NULL)
+		{
+			SendClientMessage(conn, "Falha ao gravar Guilds.txt. Avise a staff.");
+			return;
+		}
+
+		fseek(fp, 0, SEEK_END);
+		long guildFileSize = ftell(fp);
+		fprintf(fp, "%s%d %d %d %s   ", guildFileSize > 0 ? "\n" : "", ServerGroup, ServerIndex, newGuildCounter, szName);
+		fclose(fp);
+
+		pMob[conn].MOB.Guild = newGuildId;
 		pMob[conn].MOB.GuildLevel = 9;
 
 		pMob[conn].MOB.Coin -= 1;
 		SendEtc(conn);
-
-		FILE* fp = fopen("../../Common/Guilds.txt", "a+");
-
-		if (fp == NULL)
-			return;
-
-
-		fprintf(fp, "\n%d %d %d %s   ", ServerGroup, ServerIndex, GuildCounter, szName);
-
-		fclose(fp);
 
 		int Group = ServerGroup;
 		int Server = pMob[conn].MOB.Guild / MAX_GUILD;
@@ -1162,7 +1534,6 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 		GuildInfo[usGuild].Clan = pMob[conn].MOB.Clan;
 		GuildInfo[usGuild].Fame = 0;
 		GuildInfo[usGuild].Citizen = pMob[conn].extra.Citizen;
-
 
 		sm2.GuildInfo = GuildInfo[usGuild];
 
@@ -1182,10 +1553,19 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 
 		CReadFiles::WriteGuild();
 		doRanking(conn);
+		SaveUser(conn, 0);
 
 		BASE_InitializeGuildName();
+		memset(g_pGuildName[ServerGroup][ServerIndex][newGuildCounter], 0, GUILDNAME_LENGTH);
+		strncpy(g_pGuildName[ServerGroup][ServerIndex][newGuildCounter], szName, GUILDNAME_LENGTH - 1);
 
-		SendClientMessage(conn, strFmt(g_pMessageStringTable[_SN_CREATEGUILD], szName));
+		MSG_CreateMob sm_eg;
+		memset(&sm_eg, 0, sizeof(MSG_CreateMob));
+		GetCreateMob(conn, &sm_eg);
+		GridMulticast(pMob[conn].TargetX, pMob[conn].TargetY, (MSG_STANDARD*)&sm_eg, 0);
+
+		SendClientMessage(conn, strFmt("Guilda %s criada com sucesso. ID: %d", szName, newGuildId));
+		SendNotice(strFmt("Guilda %s foi criada por %s.", szName, pMob[conn].MOB.MobName));
 		return;
 	}
 #pragma endregion
@@ -1288,10 +1668,15 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 	else if (strcmp(m->MobName, "sair") == 0 || strcmp(m->MobName, "expulsar") == 0 || strcmp(m->MobName, "abandonar") == 0)
 	{
 		if (pMob[conn].MOB.Guild == 0)
+		{
+			SendClientMessage(conn, "Voce nao esta em uma guild.");
 			return;
+		}
 
 
 		int gGuild = pMob[conn].MOB.Guild;
+		char guildname[256];
+		ResolveGuildNameForDisplay(ServerGroup, gGuild, guildname, sizeof(guildname));
 
 		if (pMob[conn].MOB.GuildLevel >= 6 && pMob[conn].MOB.GuildLevel <= 8)
 		{
@@ -1328,6 +1713,10 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 		GetCreateMob(conn, &sm_eg);
 
 		GridMulticast(pMob[conn].TargetX, pMob[conn].TargetY, (MSG_STANDARD*)&sm_eg, 0);
+
+		SendClientMessage(conn, strFmt("Voce saiu da guilda %s.", guildname));
+		SendGuildNotice(gGuild, strFmt("%s saiu da guilda.", pMob[conn].MOB.MobName));
+		SaveUser(conn, 0);
 		return;
 	}
 #pragma endregion 
@@ -1440,7 +1829,7 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 			return;
 		}
 		if (pMob[conn].MOB.Equip[13].sIndex != 3901 && pMob[conn].MOB.Equip[13].sIndex != 3902 && pMob[conn].MOB.Equip[13].sIndex != 3916) {
-			SendClientMessage(conn, "Precisa de uma fada azul/vermelha ou do vale para usar essa função!");
+			SendClientMessage(conn, "Precisa de uma fada azul/vermelha ou do vale para usar essa fun��o!");
 			return;
 		}
 		if (pMob[conn].FiltroState == 0) {
@@ -1736,10 +2125,7 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 	else if (strcmp(m->MobName, g_pMessageStringTable[_NN_Relocate]) == 0 || strcmp(m->MobName, "relo") == 0)
 	{
 		int Class = pMob[conn].MOB.Class;
-		int admin = 0;
-
-		if (pMob[conn].MOB.CurrentScore.Level >= 999)
-			admin = 1;
+		int admin = pUser[conn].Admin == 1 ? 1 : 0;
 
 		if (pMob[conn].MOB.CurrentScore.Hp <= 0)
 		{
@@ -1950,7 +2336,10 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 		}
 
 		if (i == pMob[conn].MaxCarry)
+		{
+			SendClientMessage(conn, "Voce precisa de Trombeta Magica para usar /gritar.");
 			return;
+		}
 
 
 		SendSpkMsg(conn, m->String, TNColor::Speak, true);
@@ -1981,13 +2370,13 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 				pUser[conn].Donate += numCash;
 
 				char tmg[256];
-				SendClientMessage(conn, "Agradecemos a sua contribuição... Digite /saldo");
+				SendClientMessage(conn, "Agradecemos a sua contribui��o... Digite /saldo");
 				SaveUser(conn, 0);
 				SendEtc(conn);
 				return;
 			}
 			else
-				SendClientMessage(conn, "Um erro ocorreu durante a ativação, favor contatar administração.");
+				SendClientMessage(conn, "Um erro ocorreu durante a ativa��o, favor contatar administra��o.");
 		}
 		return;
 	}*/
@@ -2118,7 +2507,7 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 			return;
 		}
 #pragma endregion
-#pragma region Chat Cidadão
+#pragma region Chat Cidadao
 		if (m->String[0] == '@')
 		{
 			if (pUser[conn].Message != 0)
@@ -2205,9 +2594,9 @@ void Exec_MSG_MessageWhisper(int conn, char* pMsg)
 				char tt[256];
 				char guildind[256];
 				char guildindex[256];
-				int usGuild = pMob[conn].MOB.Guild;
-				BASE_GetGuildName(ServerGroup, pMob[target].MOB.Guild, guildname);
-				BASE_GetGuildName(ServerGroup, pMob[conn].MOB.Guild, guildind);
+				int usGuild = pMob[target].MOB.Guild;
+				ResolveGuildNameForDisplay(ServerGroup, pMob[target].MOB.Guild, guildname, sizeof(guildname));
+				ResolveGuildNameForDisplay(ServerGroup, pMob[target].MOB.Guild, guildind, sizeof(guildind));
 				//guildindex = pMob[conn].MOB.GuildLevel;
 
 				if (pMob[conn].MOB.Guild == 0 && pMob[conn].MOB.GuildLevel != 9)
