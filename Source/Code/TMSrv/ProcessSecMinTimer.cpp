@@ -982,6 +982,51 @@ lbl_PST1:
 			}
 
 
+			// Montaria adulta: auto-alimentar (<30% comida) + alerta de fome (<20%)
+			{
+				STRUCT_ITEM* MItem = &pMob[user].MOB.Equip[14];
+				if (MItem->sIndex >= 2360 && MItem->sIndex < 2390 && MItem->stEffect[0].sValue > 0)
+				{
+					int comida = MItem->stEffect[2].cEffect;
+					if (comida < 30)
+					{
+						int mtype = (MItem->sIndex - 2330) % 30;
+						if (mtype >= 6 && mtype <= 15 || mtype == 27) mtype = 6;
+						if (mtype == 19) mtype = 7;
+						if (mtype == 20) mtype = 8;
+						if (mtype == 21 || mtype == 22 || mtype == 23 || mtype == 28) mtype = 9;
+						if (mtype == 24 || mtype == 25 || mtype == 26) mtype = 10;
+						if (mtype == 29) mtype = 19;
+						int fed = 0;
+						for (int ci = 0; ci < pMob[user].MaxCarry && ci < MAX_CARRY && comida < 100 && fed < 60; ci++)
+						{
+							int rid = pMob[user].MOB.Carry[ci].sIndex;
+							if (!((rid >= 2420 && rid <= 2449) || (rid >= 3367 && rid <= 3396))) continue;
+							int racid = rid >= 3367 ? rid - 3367 : rid - 2420;
+							if ((racid % 30) != mtype) continue;
+							int qtd = BASE_GetItemAmount(&pMob[user].MOB.Carry[ci]);
+							if (qtd <= 0) qtd = 1;
+							while (qtd > 0 && comida < 100 && fed < 60)
+							{
+								comida += 2; if (comida > 100) comida = 100;
+								if (MItem->stEffect[0].sValue + 5000 > 30000) MItem->stEffect[0].sValue = 30000; else MItem->stEffect[0].sValue += 5000;
+								qtd--; fed++;
+							}
+							if (qtd > 0) BASE_SetItemAmount(&pMob[user].MOB.Carry[ci], qtd); else BASE_ClearItem(&pMob[user].MOB.Carry[ci]);
+							SendItem(user, ITEM_PLACE_CARRY, ci, &pMob[user].MOB.Carry[ci]);
+						}
+						if (fed > 0)
+						{
+							MItem->stEffect[2].cEffect = comida;
+							SendItem(user, ITEM_PLACE_EQUIP, 14, &pMob[user].MOB.Equip[14]);
+							ProcessAdultMount(user, 0);
+						}
+					}
+					if (comida < 20)
+						SendClientMessage(user, strFmt("Sua montaria esta com fome! (%d%%) Coloque racao da montaria no inventario.", comida));
+				}
+			}
+
 			//trajes
 			if (pMob[user].MOB.Equip[12].sIndex >= 4150 && pMob[user].MOB.Equip[12].sIndex <= 4188 && BASE_CheckItemDate(&pMob[user].MOB.Equip[12]))
 			{
@@ -1916,7 +1961,7 @@ lbl_PST1:
 						Prize.stEffect[0].cEffect = 43;
 						Prize.stEffect[0].cValue = 4;
 
-						PutItem(Pista[3].Party[3].LeaderID, &Prize);
+						PutItem(Pista[3].Party[1].LeaderID, &Prize);
 						SystemLog("-system", "-", 0, "etc,questRune complete +3 party2");
 					}
 				}
