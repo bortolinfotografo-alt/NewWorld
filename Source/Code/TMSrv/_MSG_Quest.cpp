@@ -1623,6 +1623,7 @@ void Exec_MSG_Quest(int conn, char* pMsg)
 		Pista[sala].Party[j].MobCount = 0;
 		Pista[sala].Party[j].Sala = sala;
 		strncpy(Pista[sala].Party[j].LeaderName, pMob[conn].MOB.MobName, NAME_LENGTH);
+		SendNotice(strFmt("[PISTA DE RUNAS] %s registrou a Pista de Runas +%d!", pMob[conn].MOB.MobName, sala));
 
 		pUser[conn].Ingame.CheckPista = TRUE;
 		BASE_ClearItem(&pMob[conn].MOB.Carry[i]);
