@@ -987,8 +987,18 @@ lbl_PST1:
 				STRUCT_ITEM* MItem = &pMob[user].MOB.Equip[14];
 				if (MItem->sIndex >= 2360 && MItem->sIndex < 2390 && MItem->stEffect[0].sValue > 0)
 				{
-					int comida = MItem->stEffect[2].cEffect;
-					if (comida < 30)
+					int revigorante = 0;
+					for (int ai = 0; ai < MAX_AFFECT; ai++)
+					{
+						if (pMob[user].Affect[ai].Type == 51)
+						{
+							revigorante = 1;
+							break;
+						}
+					}
+
+					int comida = revigorante ? 100 : MItem->stEffect[2].cEffect;
+					if (!revigorante && comida < 30)
 					{
 						int mtype = (MItem->sIndex - 2330) % 30;
 						if (mtype >= 6 && mtype <= 15 || mtype == 27) mtype = 6;
@@ -1022,7 +1032,7 @@ lbl_PST1:
 							ProcessAdultMount(user, 0);
 						}
 					}
-					if (comida < 20)
+					if (!revigorante && comida < 20)
 						SendClientMessage(user, strFmt("Sua montaria esta com fome! (%d%%) Coloque racao da montaria no inventario.", comida));
 				}
 			}
