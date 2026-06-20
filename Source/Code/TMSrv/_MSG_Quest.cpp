@@ -1553,6 +1553,33 @@ void Exec_MSG_Quest(int conn, char* pMsg)
 			break;
 		}
 
+		// >> Bloqueio de Mortais na Pista de Runas (apenas Arch/Celestial/Sub-Celestial)
+		{
+			int pista_mortal = (pMob[conn].extra.ClassMaster == MORTAL) ? conn : -1;
+			if (pista_mortal == -1)
+			{
+				for (int pmi = 0; pmi < MAX_PARTY; pmi++)
+				{
+					int pmc = pMob[conn].PartyList[pmi];
+					if (pmc > 0 && pmc < MAX_USER && pUser[pmc].Mode == USER_PLAY
+						&& (pMob[pmc].TargetX / 128) == 25 && (pMob[pmc].TargetY / 128) == 13
+						&& pMob[pmc].extra.ClassMaster == MORTAL)
+					{
+						pista_mortal = pmc;
+						break;
+					}
+				}
+			}
+			if (pista_mortal != -1)
+			{
+				if (pista_mortal == conn)
+					SendClientMessage(conn, "Personagens Mortais nao podem entrar na Pista de Runas. (apenas Arch, Celestial e Sub-Celestial)");
+				else
+					SendClientMessage(conn, strFmt("O membro [%s] e Mortal e nao pode entrar na Pista. (apenas Arch, Celestial e Sub-Celestial)", pMob[pista_mortal].MOB.MobName));
+				break;
+			}
+		}
+
 		/*if (pUser[conn].Ingame.CheckPista == TRUE)
 		{
 			SendClientMessage(conn, "Entrada Já esta registrada");
