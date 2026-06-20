@@ -1,0 +1,18 @@
+// ============================================================
+// Contas com permissao de ADMIN (independe de IP / WiFi).
+// ============================================================
+//
+// Um LOGIN de conta por linha (o login, nao o nome do personagem).
+// Comparacao ignora maiusculas/minusculas. Linhas com // ou # sao ignoradas.
+//
+// Como funciona: o primeiro personagem da conta vira Sub Celestial level 1001
+// e recebe automaticamente o prefixo -ADM-. A conta tambem pode ativar o
+// admin no jogo com /wydkingdom on. Nenhuma outra conta recebe o cargo.
+//
+// Pode editar este arquivo na VPS e recarregar (/gm +reloadfile) ou reiniciar
+// o TMSrv -- nao precisa recompilar para adicionar/remover contas.
+//
+// Logins de admin (um por linha):
+
+matteo
+altarugio
