@@ -999,26 +999,7 @@ void LanDrop(int conn, int target)
 			item.stEffect[2].cValue = 0;
 		}
 
-		// Amago 4%
-		if (_rand > 60 && _rand < 65) {
-			item.sIndex = 2400;
-			item.stEffect[0].cEffect = 0;
-			item.stEffect[0].cValue = 0;
-			item.stEffect[1].cEffect = 0;
-			item.stEffect[1].cValue = 0;
-			item.stEffect[2].cEffect = 0;
-			item.stEffect[2].cValue = 0;
-		}
-		// Amago 4%
-		if (_rand > 70 && _rand < 75) {
-			item.sIndex = 2405;
-			item.stEffect[0].cEffect = 0;
-			item.stEffect[0].cValue = 0;
-			item.stEffect[1].cEffect = 0;
-			item.stEffect[1].cValue = 0;
-			item.stEffect[2].cEffect = 0;
-			item.stEffect[2].cValue = 0;
-		}
+
 		// Barra 1kk 10%
 		if (_rand > 89 && _rand < 99) {
 			item.sIndex = 4026;
